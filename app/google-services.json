@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "208206771068",
+    "project_id": "vidaensupalabra-830e4",
+    "storage_bucket": "vidaensupalabra-830e4.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:208206771068:android:30f13714cb76cf593baaf9",
+        "android_client_info": {
+          "package_name": "com.example.vsp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCr5lxvwhrLF0j1S25ye4LCdBc9rJfsJJo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
