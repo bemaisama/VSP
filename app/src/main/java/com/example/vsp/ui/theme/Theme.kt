@@ -20,7 +20,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
-import com.example.vsp.R
+import com.vidaensupalabra.vsp.R
 
 // Asegúrate de que estos colores estén definidos en tu archivo Color.kt
 private val DarkColorScheme = darkColorScheme(

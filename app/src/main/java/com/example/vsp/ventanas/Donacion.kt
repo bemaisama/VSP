@@ -26,11 +26,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.vsp.R
 import com.example.vsp.ui.theme.VspBase
 import com.example.vsp.ui.theme.VspMarco
 import com.example.vsp.ui.theme.VspMarcoTransparente50
 import com.example.vsp.ui.theme.White
+import com.vidaensupalabra.vsp.R
 
 @Composable
 fun DonacionScreen(navController: NavController) {

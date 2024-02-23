@@ -60,14 +60,14 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.vsp.MainViewModel
-import com.example.vsp.R
-import com.example.vsp.R.drawable
+import com.vidaensupalabra.vsp.R.drawable
 import com.example.vsp.otros.YouTubeVideoView
 import com.example.vsp.ui.theme.VspBase
 import com.example.vsp.ui.theme.VspMarco
 import com.example.vsp.ui.theme.VspMarcoTransparente
 import com.example.vsp.ui.theme.VspMarcoTransparente50
 import com.example.vsp.ui.theme.White
+import com.vidaensupalabra.vsp.R
 
 @Composable
 fun HomeScreen(viewModel: MainViewModel = viewModel()) {
