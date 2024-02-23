@@ -1,5 +1,8 @@
-package com.example.vsp.ventanas
+package com.vidaensupalabra.vsp.ventanas
 
+//noinspection UsingMaterialAndMaterial3Libraries
+//noinspection UsingMaterialAndMaterial3Libraries
+//noinspection UsingMaterialAndMaterial3Libraries
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -8,12 +11,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-//noinspection UsingMaterialAndMaterial3Libraries
 import androidx.compose.material.Card
 import androidx.compose.material.ExperimentalMaterialApi
-//noinspection UsingMaterialAndMaterial3Libraries
 import androidx.compose.material.Icon
-//noinspection UsingMaterialAndMaterial3Libraries
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -30,11 +30,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.vsp.MainViewModel
-import com.example.vsp.TextWithStyleFromFirestore
-import com.example.vsp.ui.theme.VspBase
-import com.example.vsp.ui.theme.VspMarco
-import com.example.vsp.ui.theme.White
+import com.vidaensupalabra.vsp.MainViewModel
+import com.vidaensupalabra.vsp.TextWithStyleFromFirestore
+import com.vidaensupalabra.vsp.ui.theme.VspBase
+import com.vidaensupalabra.vsp.ui.theme.VspMarco
+import com.vidaensupalabra.vsp.ui.theme.White
 
 @Composable
 fun MusicaScreen(viewModel: MainViewModel) {

@@ -1,4 +1,4 @@
-package com.example.vsp.ui.theme
+package com.vidaensupalabra.vsp.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

@@ -1,4 +1,4 @@
-package com.example.vsp.ventanas
+package com.vidaensupalabra.vsp.ventanas
 
 //noinspection UsingMaterialAndMaterial3Libraries
 //noinspection UsingMaterialAndMaterial3Libraries
@@ -59,15 +59,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.vsp.MainViewModel
-import com.vidaensupalabra.vsp.R.drawable
-import com.example.vsp.otros.YouTubeVideoView
-import com.example.vsp.ui.theme.VspBase
-import com.example.vsp.ui.theme.VspMarco
-import com.example.vsp.ui.theme.VspMarcoTransparente
-import com.example.vsp.ui.theme.VspMarcoTransparente50
-import com.example.vsp.ui.theme.White
+import com.vidaensupalabra.vsp.otros.YouTubeVideoView
+import com.vidaensupalabra.vsp.ui.theme.VspBase
+import com.vidaensupalabra.vsp.ui.theme.VspMarco
+import com.vidaensupalabra.vsp.ui.theme.VspMarcoTransparente
+import com.vidaensupalabra.vsp.ui.theme.VspMarcoTransparente50
+import com.vidaensupalabra.vsp.ui.theme.White
+import com.vidaensupalabra.vsp.MainViewModel
 import com.vidaensupalabra.vsp.R
+import com.vidaensupalabra.vsp.R.drawable
 
 @Composable
 fun HomeScreen(viewModel: MainViewModel = viewModel()) {
@@ -384,7 +384,7 @@ fun Ministerios_asociados(storychurkUrl: String, acts29Url: String, pillarnetwor
         Box(modifier = Modifier
             .clickable { openUrl(context, storychurkUrl) }) {
             Image(
-                painter = painterResource(id = R.drawable.storychurk),
+                painter = painterResource(id = drawable.storychurk),
                 contentDescription = "Storychurk",
                 modifier = Modifier.fillMaxSize()
                     .height(60.dp), // Usa fillMaxSize para llenar el Box
@@ -398,7 +398,7 @@ fun Ministerios_asociados(storychurkUrl: String, acts29Url: String, pillarnetwor
         Box(modifier = Modifier
             .clickable { openUrl(context, acts29Url) }) {
             Image(
-                painter = painterResource(id = R.drawable.acts29),
+                painter = painterResource(id = drawable.acts29),
                 contentDescription = "Acts29",
                 modifier = Modifier.fillMaxSize()
                     .height(60.dp), // Usa fillMaxSize para llenar el Box
@@ -412,7 +412,7 @@ fun Ministerios_asociados(storychurkUrl: String, acts29Url: String, pillarnetwor
         Box(modifier = Modifier
             .clickable { openUrl(context, pillarnetworkUrl) }) {
             Image(
-                painter = painterResource(id = R.drawable.pillarnetwork),
+                painter = painterResource(id = drawable.pillarnetwork),
                 contentDescription = "PillarNetwork",
                 modifier = Modifier.fillMaxSize()
                     .height(60.dp), // Usa fillMaxSize para llenar el Box

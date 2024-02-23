@@ -1,4 +1,4 @@
-package com.example.vsp.ventanas
+package com.vidaensupalabra.vsp.ventanas
 
 //noinspection UsingMaterialAndMaterial3Libraries
 //noinspection UsingMaterialAndMaterial3Libraries
@@ -43,9 +43,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import com.example.vsp.ArdeViewModel
-import com.example.vsp.ui.theme.VspBase
-import com.example.vsp.ui.theme.White
+import com.vidaensupalabra.vsp.ArdeViewModel
+import com.vidaensupalabra.vsp.ui.theme.VspBase
+import com.vidaensupalabra.vsp.ui.theme.White
 import java.util.Calendar
 
 @Composable

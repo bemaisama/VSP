@@ -1,4 +1,4 @@
-package com.example.vsp.ventanas
+package com.vidaensupalabra.vsp.ventanas
 
 //noinspection UsingMaterialAndMaterial3Libraries
 import androidx.compose.foundation.layout.Box
@@ -18,10 +18,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.vsp.Screens
-import com.example.vsp.ui.theme.VspBase
-import com.example.vsp.ui.theme.VspMarcoTransparente50
-import com.example.vsp.ui.theme.White
+import com.vidaensupalabra.vsp.ui.theme.VspBase
+import com.vidaensupalabra.vsp.ui.theme.VspMarcoTransparente50
+import com.vidaensupalabra.vsp.ui.theme.White
+import com.vidaensupalabra.vsp.Screens
 
 @Composable
 fun Mas(navController: NavController) {

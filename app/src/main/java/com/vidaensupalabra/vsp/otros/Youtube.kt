@@ -1,4 +1,4 @@
-package com.example.vsp.otros
+package com.vidaensupalabra.vsp.otros
 
 import android.util.Log
 import androidx.compose.runtime.Composable

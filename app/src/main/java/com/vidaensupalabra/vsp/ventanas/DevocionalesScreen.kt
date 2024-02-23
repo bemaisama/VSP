@@ -1,5 +1,8 @@
-package com.example.vsp.ventanas
+package com.vidaensupalabra.vsp.ventanas
 
+//noinspection UsingMaterialAndMaterial3Libraries
+//noinspection UsingMaterialAndMaterial3Libraries
+//noinspection UsingMaterialAndMaterial3Libraries
 import android.content.Intent
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -11,11 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-//noinspection UsingMaterialAndMaterial3Libraries
 import androidx.compose.material.Button
-//noinspection UsingMaterialAndMaterial3Libraries
 import androidx.compose.material.ContentAlpha
-//noinspection UsingMaterialAndMaterial3Libraries
 import androidx.compose.material.TextFieldDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -27,9 +27,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.example.vsp.ArdeEntity
-import com.example.vsp.ui.theme.VspMarcoTransparente50
-import com.example.vsp.ui.theme.White
+import com.vidaensupalabra.vsp.ui.theme.VspMarcoTransparente50
+import com.vidaensupalabra.vsp.ui.theme.White
+import com.vidaensupalabra.vsp.ArdeEntity
 
 @Composable
 fun DevocionalScreen(arde: ArdeEntity?, onSave: (ArdeEntity) -> Unit, onClose: () -> Unit) {

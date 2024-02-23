@@ -1,4 +1,4 @@
-package com.example.vsp.ventanas
+package com.vidaensupalabra.vsp.ventanas
 
 import android.content.Intent
 import android.net.Uri
@@ -55,11 +55,11 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import com.example.vsp.ui.theme.VspBase
-import com.example.vsp.ui.theme.VspMarco
-import com.example.vsp.ui.theme.VspMarcoTransparente
-import com.example.vsp.ui.theme.VspMarcoTransparente50
-import com.example.vsp.ui.theme.White
+import com.vidaensupalabra.vsp.ui.theme.VspBase
+import com.vidaensupalabra.vsp.ui.theme.VspMarco
+import com.vidaensupalabra.vsp.ui.theme.VspMarcoTransparente
+import com.vidaensupalabra.vsp.ui.theme.VspMarcoTransparente50
+import com.vidaensupalabra.vsp.ui.theme.White
 import com.vidaensupalabra.vsp.R
 
 
