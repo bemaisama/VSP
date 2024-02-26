@@ -1,5 +1,6 @@
 package com.vidaensupalabra.vsp
 
+import android.annotation.SuppressLint
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -56,20 +57,20 @@ import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.Update
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.messaging.FirebaseMessagingService
+import com.google.firebase.messaging.RemoteMessage
 import com.vidaensupalabra.vsp.ui.theme.VSPTheme
 import com.vidaensupalabra.vsp.ui.theme.VspBase
 import com.vidaensupalabra.vsp.ui.theme.VspMarco
 import com.vidaensupalabra.vsp.ui.theme.White
-import com.vidaensupalabra.vsp.ventanas.DonacionScreen
 import com.vidaensupalabra.vsp.ventanas.ARDEScreen
 import com.vidaensupalabra.vsp.ventanas.DevocionalScreen
+import com.vidaensupalabra.vsp.ventanas.DonacionScreen
 import com.vidaensupalabra.vsp.ventanas.HomeScreen
 import com.vidaensupalabra.vsp.ventanas.InformationScreen
 import com.vidaensupalabra.vsp.ventanas.Mas
 import com.vidaensupalabra.vsp.ventanas.MusicaScreen
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.messaging.FirebaseMessagingService
-import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
@@ -77,7 +78,9 @@ import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.InputStreamReader
 
+@SuppressLint("MissingFirebaseInstanceTokenRefresh")
 class MyFirebaseMessagingService : FirebaseMessagingService() {
+    @SuppressLint("MissingPermission")
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         super.onMessageReceived(remoteMessage)
 
@@ -222,13 +225,8 @@ class ArdeViewModel(application: Application) : AndroidViewModel(application) {
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     companion object {
         private const val TAG = "MainViewModel"
-        private const val PREFS_NAME = "com.example.vsp.prefs"
-        private const val LAST_SYNC_TIME = "last_sync_time"
     }
-    private val sharedPreferences = application.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-    private var lastSyncTime: Long
-        get() = sharedPreferences.getLong(LAST_SYNC_TIME, 0)
-        set(value) = sharedPreferences.edit().putLong(LAST_SYNC_TIME, value).apply()
+
     private val db = FirebaseFirestore.getInstance()
     var anuncios = mutableStateListOf<ImportantAnnouncement>()
 
@@ -430,7 +428,7 @@ fun NavigationGraph(navController: NavHostController) {
                 }
             )
         }
-        composable(Screens.Donacion.route){ DonacionScreen(navController= navController) }
+        composable(Screens.Donacion.route){ DonacionScreen() }
 
     }
 }

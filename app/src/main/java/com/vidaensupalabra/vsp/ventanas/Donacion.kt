@@ -26,15 +26,14 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
+import com.vidaensupalabra.vsp.R
 import com.vidaensupalabra.vsp.ui.theme.VspBase
 import com.vidaensupalabra.vsp.ui.theme.VspMarco
 import com.vidaensupalabra.vsp.ui.theme.VspMarcoTransparente50
 import com.vidaensupalabra.vsp.ui.theme.White
-import com.vidaensupalabra.vsp.R
 
 @Composable
-fun DonacionScreen(navController: NavController) {
+fun DonacionScreen() {
     val cuentaAhorro = "526-805680-49"
     val nit = "901104161-3"
     val codigoSwift = "COLOCOBM"
@@ -54,7 +53,7 @@ fun DonacionScreen(navController: NavController) {
                     Text(
                         text = "Donación",
                         color = White,
-                        style = androidx.compose.material3.MaterialTheme.typography.headlineMedium
+                        style = MaterialTheme.typography.headlineMedium
                     )
                 }
             }
@@ -68,7 +67,7 @@ fun DonacionScreen(navController: NavController) {
         ) {
             Text(
                 text = "Para realizar una donación de manera virtual, puedes hacerlo desde tu plataforma bancaria a nuestra cuenta de ahorro, usando los siguientes datos para la transacción",
-                style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyMedium,
                 color = White
             )
             // Corrección: Pasar las variables como parámetros a la función
@@ -138,7 +137,7 @@ fun Textocorreo() {
 
     Text(
         text = annotatedText,
-        style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
+        style = MaterialTheme.typography.bodyMedium,
         color = White
     )
 }

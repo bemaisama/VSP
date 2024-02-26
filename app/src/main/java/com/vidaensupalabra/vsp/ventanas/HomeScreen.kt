@@ -59,18 +59,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.vidaensupalabra.vsp.MainViewModel
+import com.vidaensupalabra.vsp.R
+import com.vidaensupalabra.vsp.R.drawable
 import com.vidaensupalabra.vsp.otros.YouTubeVideoView
 import com.vidaensupalabra.vsp.ui.theme.VspBase
 import com.vidaensupalabra.vsp.ui.theme.VspMarco
 import com.vidaensupalabra.vsp.ui.theme.VspMarcoTransparente
 import com.vidaensupalabra.vsp.ui.theme.VspMarcoTransparente50
 import com.vidaensupalabra.vsp.ui.theme.White
-import com.vidaensupalabra.vsp.MainViewModel
-import com.vidaensupalabra.vsp.R
-import com.vidaensupalabra.vsp.R.drawable
 
 @Composable
-fun HomeScreen(viewModel: MainViewModel = viewModel()) {
+fun HomeScreen() {
     val isYouTubeVideoPlaying = remember { mutableStateOf(false) }
 
     Scaffold(
@@ -132,8 +132,8 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
 //////////////SECUNDARIOS//////////////////////////////////////////////////
 @Composable
 fun BackgroundVideo(modifier: Modifier = Modifier, isPlaying: MutableState<Boolean>) {
-    val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current.lifecycle
+    LocalContext.current
+    LocalLifecycleOwner.current.lifecycle
 
     var videoView: VideoView? = null
 
@@ -377,8 +377,6 @@ fun Ministerios_asociados(storychurkUrl: String, acts29Url: String, pillarnetwor
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Tamaño deseado para las imágenes
-        val imageSize = 250.dp // Ajusta este valor según necesites
 
         // Storychurk Image Button
         Box(modifier = Modifier
