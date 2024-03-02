@@ -3,6 +3,7 @@ package com.vidaensupalabra.vsp.ventanas
 //noinspection UsingMaterialAndMaterial3Libraries
 //noinspection UsingMaterialAndMaterial3Libraries
 //noinspection UsingMaterialAndMaterial3Libraries
+import android.util.Log
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,16 +23,22 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.vidaensupalabra.vsp.MainViewModel
-import com.vidaensupalabra.vsp.TextWithStyleFromFirestore
+import com.vidaensupalabra.vsp.otros.YouTubeVideoView
 import com.vidaensupalabra.vsp.ui.theme.VspBase
 import com.vidaensupalabra.vsp.ui.theme.VspMarco
 import com.vidaensupalabra.vsp.ui.theme.White
@@ -39,6 +46,7 @@ import com.vidaensupalabra.vsp.ui.theme.White
 @Composable
 fun MusicaScreen(viewModel: MainViewModel) {
     val canciones = viewModel.canciones.observeAsState(initial = listOf())
+    val isYouTubeVideoPlaying = remember { mutableStateOf(false) }
 
     LazyColumn(modifier = Modifier.padding(16.dp)) {
         item {
@@ -50,9 +58,33 @@ fun MusicaScreen(viewModel: MainViewModel) {
             Spacer(modifier = Modifier.height(8.dp))
         }
         canciones.value.forEach { cancion ->
-            item { CancionCard(titulo = cancion.titulo1, artista = cancion.artista1, letra = cancion.letra1) }
-            item { CancionCard(titulo = cancion.titulo2, artista = cancion.artista2, letra = cancion.letra2) }
-            item { CancionCard(titulo = cancion.titulo3, artista = cancion.artista3, letra = cancion.letra3) }
+            item {
+                CancionCard(
+                    titulo = cancion.titulo1,
+                    artista = cancion.artista1,
+                    letra = cancion.letra1
+                )
+            }
+            item {
+                CancionCard(
+                    titulo = cancion.titulo2,
+                    artista = cancion.artista2,
+                    letra = cancion.letra2
+                )
+            }
+            item {
+                CancionCard(
+                    titulo = cancion.titulo3,
+                    artista = cancion.artista3,
+                    letra = cancion.letra3
+                )
+            }
+        }
+
+        item {
+            Spacer(modifier = Modifier.height(16.dp))
+            VideosDomingo()
+
         }
     }
 }
@@ -93,9 +125,102 @@ fun CancionCard(titulo: String, artista: String, letra: String) {
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 // Usamos TextWithStyleFromFirestore para mostrar la letra con estilo
-                TextWithStyleFromFirestore(letra)
+                TextoConformato(letra)
             }
         }
     }
 }
 
+@Composable
+fun TextoConformato(text: String) {
+    // Preprocesamos el texto para reemplazar "/n" con el salto de línea "\n"
+    val processedText = text.replace("/n", "\n")
+
+    val styledText = buildAnnotatedString {
+        var startIndex: Int
+        var endIndex: Int
+        var currentIndex = 0
+
+        while (currentIndex < processedText.length) {
+            startIndex = processedText.indexOf("*", currentIndex)
+            if (startIndex == -1) {
+                append(processedText.substring(currentIndex, processedText.length))
+                break // No more bold text, append the rest and exit
+            }
+            endIndex = processedText.indexOf("*", startIndex + 1)
+            if (endIndex == -1) {
+                append(processedText.substring(currentIndex, processedText.length))
+                break // No closing tag, append the rest and exit
+            }
+
+            // Text before bold
+            if (startIndex > currentIndex) {
+                append(processedText.substring(currentIndex, startIndex))
+            }
+
+            // Bold text
+            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, color = White)) {
+                append(processedText.substring(startIndex + 1, endIndex))
+            }
+
+            currentIndex = endIndex + 1
+        }
+    }
+
+    Text(text = styledText, color = White, style = MaterialTheme.typography.bodyMedium)
+}
+
+fun extractoVideosDomingo(url: String): String? {
+    val pattern = Regex("^(https?://)?(www.youtube.com/watch\\?v=|youtu.be/)([\\w-]+)(.*\$)")
+    val matchResult = pattern.find(url)
+    return matchResult?.groups?.get(3)?.value
+}
+
+@Composable
+fun VideosDomingo(viewModel: MainViewModel = viewModel()) {
+    val canciones = viewModel.canciones.observeAsState(initial = listOf())
+    // Define un estado MutableMap para manejar la reproducción de cada video
+    val isPlaying = remember { mutableStateMapOf<String, Boolean>() }
+
+    if (canciones.value.isNotEmpty()) {
+        val cancion = canciones.value[0]
+        val videoId1 = extractoVideosDomingo(cancion.youtubevideo1) ?: ""
+        val videoId2 = extractoVideosDomingo(cancion.youtubevideo2) ?: ""
+        val videoId3 = extractoVideosDomingo(cancion.youtubevideo3) ?: ""
+
+        // Inicializa el estado de reproducción para cada video
+        isPlaying.putIfAbsent(videoId1, false)
+        isPlaying.putIfAbsent(videoId2, false)
+        isPlaying.putIfAbsent(videoId3, false)
+
+        Log.d("VideosYoutubeMasVideos", "Loading YouTube video with ID: $videoId1")
+        Log.d("VideosYoutubeMasVideos", "Loading YouTube video with ID: $videoId2")
+        Log.d("VideosYoutubeMasVideos", "Loading YouTube video with ID: $videoId3")
+
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Videos Domingo",
+                style = MaterialTheme.typography.headlineMedium,
+                color = White,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
+            )
+            if (videoId1.isNotEmpty()) {
+                YouTubeVideoView(videoId = videoId1, isPlaying)
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            if (videoId2.isNotEmpty()) {
+                YouTubeVideoView(videoId = videoId2, isPlaying)
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (videoId3.isNotEmpty()) {
+                YouTubeVideoView(videoId = videoId3, isPlaying)
+
+            }
+        }
+    }
+}

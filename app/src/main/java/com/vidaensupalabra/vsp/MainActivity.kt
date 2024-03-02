@@ -19,7 +19,6 @@ import androidx.compose.material.BottomNavigation
 import androidx.compose.material.BottomNavigationItem
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -30,10 +29,6 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -434,44 +429,7 @@ fun NavigationGraph(navController: NavHostController) {
 }
 
 
-@Composable
-fun TextWithStyleFromFirestore(text: String) {
-    // Preprocesamos el texto para reemplazar "/n" con el salto de línea "\n"
-    val processedText = text.replace("/n", "\n")
 
-    val styledText = buildAnnotatedString {
-        var startIndex: Int
-        var endIndex: Int
-        var currentIndex = 0
-
-        while (currentIndex < processedText.length) {
-            startIndex = processedText.indexOf("*", currentIndex)
-            if (startIndex == -1) {
-                append(processedText.substring(currentIndex, processedText.length))
-                break // No more bold text, append the rest and exit
-            }
-            endIndex = processedText.indexOf("*", startIndex + 1)
-            if (endIndex == -1) {
-                append(processedText.substring(currentIndex, processedText.length))
-                break // No closing tag, append the rest and exit
-            }
-
-            // Text before bold
-            if (startIndex > currentIndex) {
-                append(processedText.substring(currentIndex, startIndex))
-            }
-
-            // Bold text
-            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, color = White)) {
-                append(processedText.substring(startIndex + 1, endIndex))
-            }
-
-            currentIndex = endIndex + 1
-        }
-    }
-
-    Text(text = styledText, color = White, style = MaterialTheme.typography.bodyMedium)
-}
 
 // Modelos de datos y Enums
 
@@ -495,5 +453,8 @@ data class Cancion(
     val letra2: String = "",
     val titulo3: String = "",
     val artista3: String = "",
-    val letra3: String = ""
-)
+    val letra3: String = "",
+    val youtubevideo1:String = "",
+    val youtubevideo2:String = "",
+    val youtubevideo3:String = "",
+    )
