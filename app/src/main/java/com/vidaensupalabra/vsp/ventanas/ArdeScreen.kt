@@ -81,7 +81,7 @@ fun ARDEScreen(viewModel: ArdeViewModel = viewModel(), navController: NavHostCon
                     textAlign = TextAlign.Center // Asegura que el texto esté centrado dentro de su contenedor
 
                  )
-                YearSelectionButtons(context, viewModel,navController)
+                 YearSelectionButtons(context, viewModel,navController)
             }
         }
     }

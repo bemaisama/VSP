@@ -44,11 +44,14 @@ fun YouTubeVideoView(videoId: String, isPlaying: MutableMap<String, Boolean>) {
                             // Prepara el video para la reproducción sin empezar automáticamente
                             youTubePlayer.cueVideo(videoId, 0f)
                             videoPlayerReady = true
+                            videoInteractionEnabled = true // Asegúrate de que está habilitado cuando el video esté listo
+
                         }
 
                         override fun onStateChange(youTubePlayer: YouTubePlayer, state: PlayerConstants.PlayerState) {
                             val isCurrentlyPlaying = state == PlayerConstants.PlayerState.PLAYING
                             isPlaying[videoId] = isCurrentlyPlaying // Corrección aquí
+                            videoInteractionEnabled = isCurrentlyPlaying // Habilita la interacción solo si el video se está reproduciendo
                             Log.d("YouTubeVideoView", "Video is playing: $isCurrentlyPlaying")
                         }
                     })
@@ -70,16 +73,17 @@ fun YouTubeVideoView(videoId: String, isPlaying: MutableMap<String, Boolean>) {
         }
 
         // Ajuste en la lógica de reproducción
-        if (videoPlayerReady && !isPlaying[videoId]!!) {
+        if (videoPlayerReady && !(isPlaying[videoId] ?: false)) { // Usar elvis para un fallback seguro
+            videoInteractionEnabled = false
+
             Button(
                 onClick = {
                     youTubePlayerInstance?.let {
-                        if (!videoInteractionEnabled) {
-                            // Habilita la interacción con el video y reproduce
-                            videoInteractionEnabled = true
-                            it.play()
-                            isPlaying[videoId] = true // Actualiza el estado de reproducción para este videoId
-                        }
+                        // Habilita la interacción con el video y reproduce
+                        videoInteractionEnabled = true
+                        it.play()
+                        isPlaying[videoId] = true // Actualiza el estado de reproducción para este videoId
+                        videoInteractionEnabled = true // Habilita la interacción nuevamente al empezar a reproducir
                     }
                 },
                 modifier = Modifier.align(Alignment.Center)
