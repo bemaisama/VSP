@@ -4,7 +4,11 @@ package com.vidaensupalabra.vsp.ventanas
 //noinspection UsingMaterialAndMaterial3Libraries
 //noinspection UsingMaterialAndMaterial3Libraries
 import android.content.Intent
+import android.net.http.SslError
+import android.view.View
+import android.webkit.SslErrorHandler
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
@@ -140,8 +144,24 @@ fun BibleWebView(ardeReference: String) {
         modifier = Modifier.fillMaxSize(),
         factory = { context ->
             WebView(context).apply {
+                visibility = View.INVISIBLE // Hace el WebView inicialmente invisible
                 setBackgroundColor(0)  // Hace el fondo transparente
+
                 webViewClient = object : WebViewClient() {
+                    override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler?, error: SslError?) {
+                        handler?.proceed() // Procede con precaución.
+                    }
+
+                    override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                        if (request?.url.toString() == "https://finished-loading/") {
+                            // Se ha completado la carga y las modificaciones de JavaScript, haz visible el WebView
+                            view?.visibility = View.VISIBLE
+                            return true // Evita cargar esta URL realmente
+                        }
+                        // Para otras URLs, permite la carga normal dentro del WebView
+                        return super.shouldOverrideUrlLoading(view, request)
+                    }
+
                     override fun onPageFinished(view: WebView?, url: String?) {
                         super.onPageFinished(view, url)
                         val js = """
@@ -159,11 +179,8 @@ fun BibleWebView(ardeReference: String) {
                                 var navigationButtons = navigationContainer.outerHTML;
                                 
                                 
-                                // Selecciona el contenido adicional específico
-                                var additionalContentSelector = document.querySelector('div.p-2').outerHTML; // Ajusta este selector según sea necesario
-                                
                                 // Limpia el body y establece el nuevo contenido
-                                document.body.innerHTML = additionalContentSelector + desiredContent + navigationButtons;
+                                document.body.innerHTML = desiredContent + navigationButtons;
                                 
                                 // Añade estilos para fondo transparente y texto blanco
                                 document.body.style.backgroundColor = 'transparent';
@@ -174,14 +191,14 @@ fun BibleWebView(ardeReference: String) {
                                     elements[i].style.backgroundColor = 'transparent';
                                     elements[i].style.color = 'white';
                                 }
-                                
-                            }
-                            
-                        }, 1000);
+                                window.location.href = 'https://finished-loading/';                             
+                            }                           
+                        }, 2500);
                         """
                         evaluateJavascript(js, null)
                     }
                 }
+
                 webChromeClient = WebChromeClient()
                 settings.apply {
                     javaScriptEnabled = true

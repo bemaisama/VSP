@@ -1,5 +1,6 @@
 package com.vidaensupalabra.vsp
 
+import MultimediaScreen
 import android.annotation.SuppressLint
 import android.app.Application
 import android.app.NotificationChannel
@@ -388,6 +389,8 @@ enum class Screens(val route: String) {
     Information("information"),
     Mas("mas"),
     Donacion("donacion"),
+    Multimedia("multimedia"),
+
 
 }
 
@@ -424,6 +427,7 @@ fun NavigationGraph(navController: NavHostController) {
             )
         }
         composable(Screens.Donacion.route){ DonacionScreen() }
+        composable(Screens.Multimedia.route){ MultimediaScreen() }
 
     }
 }

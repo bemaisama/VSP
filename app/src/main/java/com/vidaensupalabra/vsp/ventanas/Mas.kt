@@ -18,10 +18,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.vidaensupalabra.vsp.Screens
 import com.vidaensupalabra.vsp.ui.theme.VspBase
 import com.vidaensupalabra.vsp.ui.theme.VspMarcoTransparente50
 import com.vidaensupalabra.vsp.ui.theme.White
-import com.vidaensupalabra.vsp.Screens
 
 @Composable
 fun Mas(navController: NavController) {
@@ -64,6 +64,23 @@ fun Mas(navController: NavController) {
                     color = White,
                     style = androidx.compose.material3.MaterialTheme.typography.titleLarge
                 )
+            }
+
+            TextButton(
+                onClick = {
+                    // Navega a DonacionScreen al ser presionado
+                    navController.navigate(Screens.Multimedia.route) // Utiliza la ruta definida en el enum Screens
+                },
+                colors = ButtonDefaults.buttonColors(backgroundColor = VspMarcoTransparente50), // Usa el color que prefieras para el fondo
+                modifier = Modifier.padding(16.dp),
+                shape = RoundedCornerShape(8.dp) // Ajusta las esquinas redondeadas si es necesario
+            ) {
+                Text(
+                    text = "Multimedia",
+                    color = White,
+                    style = androidx.compose.material3.MaterialTheme.typography.titleLarge
+                )
+
             }
         }
     }
