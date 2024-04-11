@@ -179,8 +179,11 @@ fun BibleWebView(ardeReference: String) {
                                 var navigationButtons = navigationContainer.outerHTML;
                                 
                                 
+                                // Selecciona el contenido adicional específico
+                                //var additionalContentSelector = document.querySelector('div.p-2').outerHTML; // Ajusta este selector según sea necesario
+                                
                                 // Limpia el body y establece el nuevo contenido
-                                document.body.innerHTML = desiredContent + navigationButtons;
+                                document.body.innerHTML =  desiredContent + navigationButtons;
                                 
                                 // Añade estilos para fondo transparente y texto blanco
                                 document.body.style.backgroundColor = 'transparent';
@@ -193,7 +196,7 @@ fun BibleWebView(ardeReference: String) {
                                 }
                                 window.location.href = 'https://finished-loading/';                             
                             }                           
-                        }, 2500);
+                        }, 1500);
                         """
                         evaluateJavascript(js, null)
                     }

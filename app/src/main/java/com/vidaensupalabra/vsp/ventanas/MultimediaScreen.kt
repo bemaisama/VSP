@@ -38,10 +38,10 @@ import com.vidaensupalabra.vsp.ui.theme.White
 
 // Ajusta esta lista con las URLs directas de tus imágenes
 val imageUrls = listOf(
-    "https://drive.google.com/uc?export=view&id=1TV8zIL_XKk9uUIV-usDiz5vjMzfh2lwI",
-    "https://drive.google.com/uc?export=view&id=1g2uWumcXeCz-yO_iLni0ehjt4HwxGZbX",
-    "https://drive.google.com/uc?export=view&id=1dPlCoe6HL_4hw_rqIaOvJlr7EQUBoeDz",
-    "https://drive.google.com/uc?export=view&id=1XSCj1c8nH1KWRUC9-EYSgviTUYAqxR95",
+    "",
+    "",
+    "",
+    "",
 
     )
 
