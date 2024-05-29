@@ -3,8 +3,10 @@ package com.vidaensupalabra.vsp.ventanas
 //noinspection UsingMaterialAndMaterial3Libraries
 //noinspection UsingMaterialAndMaterial3Libraries
 //noinspection UsingMaterialAndMaterial3Libraries
+import android.app.AlertDialog
 import android.content.Intent
 import android.net.http.SslError
+import android.os.Build
 import android.view.View
 import android.webkit.SslErrorHandler
 import android.webkit.WebChromeClient
@@ -13,6 +15,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -40,6 +43,7 @@ import com.vidaensupalabra.vsp.ArdeEntity
 import com.vidaensupalabra.vsp.ui.theme.VspMarcoTransparente50
 import com.vidaensupalabra.vsp.ui.theme.White
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun DevocionalScreen(arde: ArdeEntity?, onSave: (ArdeEntity) -> Unit, onClose: () -> Unit) {
     // Obtiene el contexto actual dentro del composable.
@@ -130,6 +134,73 @@ fun DevocionalScreen(arde: ArdeEntity?, onSave: (ArdeEntity) -> Unit, onClose: (
 }
 
 
+class SafeWebViewClient : WebViewClient() {
+    override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler?, error: SslError?) {
+        // Aquí mostramos una alerta al usuario en lugar de proceder automáticamente con todos los errores SSL
+        handler?.cancel() // Cancela la carga de la página cuando hay un error SSL
+
+        // Muestra una alerta al usuario (opcional)
+        val context = view?.context ?: return
+        val builder = AlertDialog.Builder(context)
+        builder.setTitle("Error de seguridad")
+        builder.setMessage("Hay un problema con el certificado de seguridad de este sitio. La conexión no es segura.")
+        builder.setPositiveButton("Aceptar") { dialog, _ ->
+            dialog.dismiss()
+        }
+        builder.show()
+    }
+
+    override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+        // Mantén esta implementación igual
+        if (request?.url.toString() == "https://finished-loading/") {
+            view?.visibility = View.VISIBLE
+            return true
+        }
+        return super.shouldOverrideUrlLoading(view, request)
+    }
+
+    override fun onPageFinished(view: WebView?, url: String?) {
+        // Mantén esta implementación igual
+        super.onPageFinished(view, url)
+        val js = """
+            setTimeout(function() {
+                // Selecciona el contenido deseado
+                var desiredContent = document.querySelector('div.ChapterContent_reader__Dt27r').outerHTML;
+                
+                // Selecciona los botones de navegación
+                var navigationContainer = document.querySelector('div.w-\\[90vw\\].flex');
+                // Asegúrate de que los botones existen antes de intentar manipularlos
+                if (navigationContainer) {
+                    navigationContainer.style.position = 'relative';
+                    navigationContainer.style.bottom = 'auto';
+                    // Convierte los botones de navegación a HTML después de ajustar su estilo
+                    var navigationButtons = navigationContainer.outerHTML;
+                    
+                    
+                    // Selecciona el contenido adicional específico
+                    //var additionalContentSelector = document.querySelector('div.p-2').outerHTML; // Ajusta este selector según sea necesario
+                    
+                    // Limpia el body y establece el nuevo contenido
+                    document.body.innerHTML =  desiredContent + navigationButtons;
+                    
+                    // Añade estilos para fondo transparente y texto blanco
+                    document.body.style.backgroundColor = 'transparent';
+                    document.body.style.color = 'white';
+                    
+                    var elements = document.getElementsByTagName('*');
+                    for (var i = 0; i < elements.length; i++) {
+                        elements[i].style.backgroundColor = 'transparent';
+                        elements[i].style.color = 'white';
+                    }
+                    window.location.href = 'https://finished-loading/';                             
+                }                           
+            }, 1500);
+        """
+        view?.evaluateJavascript(js, null)
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun BibleWebView(ardeReference: String) {
     val bookAbbreviation = convertReferenceToAbbreviation(ardeReference)
@@ -147,60 +218,7 @@ fun BibleWebView(ardeReference: String) {
                 visibility = View.INVISIBLE // Hace el WebView inicialmente invisible
                 setBackgroundColor(0)  // Hace el fondo transparente
 
-                webViewClient = object : WebViewClient() {
-                    override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler?, error: SslError?) {
-                        handler?.proceed() // Procede con precaución.
-                    }
-
-                    override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                        if (request?.url.toString() == "https://finished-loading/") {
-                            // Se ha completado la carga y las modificaciones de JavaScript, haz visible el WebView
-                            view?.visibility = View.VISIBLE
-                            return true // Evita cargar esta URL realmente
-                        }
-                        // Para otras URLs, permite la carga normal dentro del WebView
-                        return super.shouldOverrideUrlLoading(view, request)
-                    }
-
-                    override fun onPageFinished(view: WebView?, url: String?) {
-                        super.onPageFinished(view, url)
-                        val js = """
-                        setTimeout(function() {
-                            // Selecciona el contenido deseado
-                            var desiredContent = document.querySelector('div.ChapterContent_reader__Dt27r').outerHTML;
-                            
-                            // Selecciona los botones de navegación
-                            var navigationContainer = document.querySelector('div.w-\\[90vw\\].flex');
-                            // Asegúrate de que los botones existen antes de intentar manipularlos
-                            if (navigationContainer) {
-                                navigationContainer.style.position = 'relative';
-                                navigationContainer.style.bottom = 'auto';
-                                // Convierte los botones de navegación a HTML después de ajustar su estilo
-                                var navigationButtons = navigationContainer.outerHTML;
-                                
-                                
-                                // Selecciona el contenido adicional específico
-                                //var additionalContentSelector = document.querySelector('div.p-2').outerHTML; // Ajusta este selector según sea necesario
-                                
-                                // Limpia el body y establece el nuevo contenido
-                                document.body.innerHTML =  desiredContent + navigationButtons;
-                                
-                                // Añade estilos para fondo transparente y texto blanco
-                                document.body.style.backgroundColor = 'transparent';
-                                document.body.style.color = 'white';
-                                
-                                var elements = document.getElementsByTagName('*');
-                                for (var i = 0; i < elements.length; i++) {
-                                    elements[i].style.backgroundColor = 'transparent';
-                                    elements[i].style.color = 'white';
-                                }
-                                window.location.href = 'https://finished-loading/';                             
-                            }                           
-                        }, 1500);
-                        """
-                        evaluateJavascript(js, null)
-                    }
-                }
+                webViewClient = SafeWebViewClient()
 
                 webChromeClient = WebChromeClient()
                 settings.apply {
