@@ -53,10 +53,10 @@ android {
 dependencies {
 
     implementation("androidx.compose.runtime:runtime-livedata")
-    implementation("androidx.compose.material:material:1.6.2") // Versión de Material Design 2
-    implementation("androidx.core:core-ktx:1.12.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
-    implementation("androidx.activity:activity-compose:1.8.2")
+    implementation("androidx.compose.material:material:1.6.7") // Versión de Material Design 2
+    implementation("androidx.core:core-ktx:1.13.1")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.1")
+    implementation("androidx.activity:activity-compose:1.9.0")
     implementation(platform("androidx.compose:compose-bom:2024.02.00"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
@@ -67,7 +67,7 @@ dependencies {
     implementation("androidx.room:room-common:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
     implementation("androidx.work:work-runtime-ktx:2.9.0")
-    implementation("androidx.activity:activity-ktx:1.8.2")
+    implementation("androidx.activity:activity-ktx:1.9.0")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
@@ -80,17 +80,18 @@ dependencies {
     implementation("androidx.room:room-runtime:$roomVersion")
     kapt("androidx.room:room-compiler:$roomVersion")
     implementation("androidx.room:room-ktx:$roomVersion") // Ya lo tienes, pero es correcto para coroutines
-    implementation ("com.google.firebase:firebase-firestore:24.10.2")
+    implementation ("com.google.firebase:firebase-firestore:25.0.0")
     implementation(platform("com.google.firebase:firebase-bom:32.7.2"))
     implementation("com.google.firebase:firebase-analytics")
     implementation ("com.google.firebase:firebase-messaging")
-    implementation ("androidx.core:core-ktx:1.12.0")
-    implementation ("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+    implementation ("androidx.core:core-ktx:1.13.1")
+    implementation ("androidx.lifecycle:lifecycle-runtime-ktx:2.8.1")
     implementation ("androidx.work:work-runtime-ktx:2.9.0")
-    implementation ("androidx.core:core-ktx:1.12.0")
+    implementation ("androidx.core:core-ktx:1.13.1")
     implementation ("com.google.code.gson:gson:2.10.1")
     implementation("com.pierfrancescosoffritti.androidyoutubeplayer:core:12.1.0")
     implementation ("com.google.android.play:core:1.10.3")
     implementation ("io.coil-kt:coil-compose:2.1.0")
+    implementation ("androidx.work:work-runtime-ktx:2.9.0") // Asegúrate de usar la última versión
 
 }

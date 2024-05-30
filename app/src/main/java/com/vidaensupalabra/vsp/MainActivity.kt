@@ -57,6 +57,8 @@ import androidx.room.Update
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import com.vidaensupalabra.vsp.notificaciones.scheduleTestNotification
+import com.vidaensupalabra.vsp.notificaciones.scheduleWeeklyNotification
 import com.vidaensupalabra.vsp.ui.theme.VSPTheme
 import com.vidaensupalabra.vsp.ui.theme.VspBase
 import com.vidaensupalabra.vsp.ui.theme.VspMarco
@@ -74,6 +76,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.InputStreamReader
+
 
 @SuppressLint("MissingFirebaseInstanceTokenRefresh")
 class MyFirebaseMessagingService : FirebaseMessagingService() {
@@ -289,13 +292,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = "Mi Canal de Notificación" // Nombre descriptivo del canal
+            val name = "Mi Canal de Notificación"
             val descriptionText = "Descripción de Mi Canal de Notificación"
             val importance = NotificationManager.IMPORTANCE_DEFAULT
             val channel = NotificationChannel("mi_canal_id", name, importance).apply {
                 description = descriptionText
             }
-            // Registrar el canal con el sistema
             val notificationManager: NotificationManager =
                 getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
@@ -303,11 +305,15 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             VSPTheme {
-                // La inicialización del ViewModel se mantiene, pero ya no pasamos el contexto explícitamente.
                 MainScreen()
             }
-
         }
+
+        // Programar notificación semanal
+        scheduleWeeklyNotification(this)
+        // Programar notificación de prueba
+        scheduleTestNotification(this, 10) // Cambia el valor según sea necesario
+
     }
 }
 
