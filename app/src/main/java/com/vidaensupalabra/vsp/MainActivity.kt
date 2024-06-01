@@ -6,14 +6,20 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.net.http.SslError
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.webkit.SslErrorHandler
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -57,8 +63,10 @@ import androidx.room.Update
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
-import com.vidaensupalabra.vsp.notificaciones.scheduleTestNotification
+import com.vidaensupalabra.vsp.notificaciones.scheduleDailyNotifications
 import com.vidaensupalabra.vsp.notificaciones.scheduleWeeklyNotification
+import com.vidaensupalabra.vsp.otros.NotificationScheduler
+import com.vidaensupalabra.vsp.otros.getCurrentArdeReference
 import com.vidaensupalabra.vsp.ui.theme.VSPTheme
 import com.vidaensupalabra.vsp.ui.theme.VspBase
 import com.vidaensupalabra.vsp.ui.theme.VspMarco
@@ -71,27 +79,54 @@ import com.vidaensupalabra.vsp.ventanas.InformationScreen
 import com.vidaensupalabra.vsp.ventanas.Mas
 import com.vidaensupalabra.vsp.ventanas.MusicaScreen
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.InputStreamReader
 
+class SecureWebViewActivity : AppCompatActivity() {
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        val webView = WebView(this)
+        setContentView(webView)
+
+        webView.webViewClient = object : WebViewClient() {
+            override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler?, error: SslError?) {
+                handler?.proceed() // Aquí puedes manejar el error SSL como desees
+            }
+        }
+
+        webView.settings.javaScriptEnabled = true
+        webView.loadUrl("https://www.example.com")
+    }
+}
+
+
+class BootReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
+            GlobalScope.launch {
+                val ardeReference = getCurrentArdeReference(context)
+                scheduleDailyNotifications(context, ardeReference)
+            }
+        }
+    }
+}
 @SuppressLint("MissingFirebaseInstanceTokenRefresh")
 class MyFirebaseMessagingService : FirebaseMessagingService() {
     @SuppressLint("MissingPermission")
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         super.onMessageReceived(remoteMessage)
 
-        // Construye la notificación
         val builder = NotificationCompat.Builder(this, "mi_canal_id")
-            .setSmallIcon(R.drawable.ic_stat_vsp) // Reemplaza esto con tu drawable de notificación
+            .setSmallIcon(R.drawable.ic_stat_vsp)
             .setContentTitle(remoteMessage.notification?.title ?: "Anuncio nuevo")
             .setContentText(remoteMessage.notification?.body ?: "Hay un Cambio Nuevo")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
 
-        // Crea un intent que se dispare cuando la notificación es presionada
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
@@ -100,12 +135,12 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
         builder.setContentIntent(pendingIntent)
 
-        // Muestra la notificación
         with(NotificationManagerCompat.from(this)) {
-            notify(101, builder.build()) // 101 es el ID de la notificación
+            notify(101, builder.build())
         }
     }
 }
+
 
 // Entidades y acceso a datos (Room)
 @Entity(tableName = "arde_data")
@@ -140,11 +175,29 @@ interface ArdeDao {
 }
 
 // Define la base de datos Room.
-@Database(entities = [ArdeEntity::class], version = 2) // Aumenta la versión aquí
+@Database(entities = [ArdeEntity::class], version = 2)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun ardeDao(): ArdeDao
-}
 
+    companion object {
+        @Volatile
+        private var INSTANCE: AppDatabase? = null
+
+        fun getInstance(context: Context): AppDatabase {
+            return INSTANCE ?: synchronized(this) {
+                val instance = Room.databaseBuilder(
+                    context.applicationContext,
+                    AppDatabase::class.java,
+                    "arde_database"
+                )
+                    .fallbackToDestructiveMigration()
+                    .build()
+                INSTANCE = instance
+                instance
+            }
+        }
+    }
+}
 // ViewModels
 class ArdeViewModel(application: Application) : AndroidViewModel(application) {
     private val db: AppDatabase = Room.databaseBuilder(application, AppDatabase::class.java, "arde_database")
@@ -287,8 +340,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
 
 // ComponentActivity y Composables
+@RequiresApi(Build.VERSION_CODES.O)
 class MainActivity : ComponentActivity() {
-    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -309,15 +362,13 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // Programar notificación semanal
         scheduleWeeklyNotification(this)
-        // Programar notificación de prueba
-        scheduleTestNotification(this, 10) // Cambia el valor según sea necesario
 
+        // Inicializar y registrar el NotificationScheduler
+        val notificationScheduler = NotificationScheduler(this, lifecycle)
+        lifecycle.addObserver(notificationScheduler)
     }
 }
-
-
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable

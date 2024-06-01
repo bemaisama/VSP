@@ -30,6 +30,7 @@ import androidx.compose.material.ContentAlpha
 import androidx.compose.material.TextFieldDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -40,57 +41,56 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.vidaensupalabra.vsp.ArdeEntity
-import com.vidaensupalabra.vsp.ui.theme.VspMarcoTransparente50
+import com.vidaensupalabra.vsp.notificaciones.scheduleDailyNotifications
+import com.vidaensupalabra.vsp.otros.getCurrentArdeReference
+import com.vidaensupalabra.vsp.ui.theme.VspBase
 import com.vidaensupalabra.vsp.ui.theme.White
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun DevocionalScreen(arde: ArdeEntity?, onSave: (ArdeEntity) -> Unit, onClose: () -> Unit) {
-    // Obtiene el contexto actual dentro del composable.
     val context = LocalContext.current
-    // Este composable maneja el botón de retroceso en este punto del árbol de composición
-    BackHandler {
-        onClose()
-    }
+    BackHandler { onClose() }
 
     if (arde == null) {
         androidx.compose.material.Text("No ARDE data available. Please select a date.")
         return
     }
 
-    // Ahora usamos `devocional` en lugar de `reference`
     var devocional by rememberSaveable { mutableStateOf(arde.devocional) }
 
-    Column(modifier =
-    Modifier
-        .padding(16.dp)
-        .verticalScroll(rememberScrollState())
+    LaunchedEffect(Unit) {
+        val ardeReference = getCurrentArdeReference(context)
+        scheduleDailyNotifications(context, ardeReference)
+    }
+
+    Column(
+        modifier = Modifier
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState())
     ) {
-        // Mostramos la referencia como un texto estático, ya que no necesitamos editarla aquí
         androidx.compose.material.Text(
             "A.R.D.E.: ${arde.reference}",
             style = MaterialTheme.typography.headlineMedium,
             color = White,
-
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // El TextField ahora está vinculado a `devocional`
         androidx.compose.material.TextField(
             textStyle = MaterialTheme.typography.bodyMedium,
             value = devocional,
             onValueChange = { newValue -> devocional = newValue },
             label = { androidx.compose.material.Text("Escribe tu devocional aquí", color = White) },
             colors = TextFieldDefaults.textFieldColors(
-                backgroundColor = VspMarcoTransparente50, // Fondo transparente para el TextField
+                backgroundColor = VspBase,
                 cursorColor = White,
                 disabledTextColor = White,
-                textColor = White, // Color del texto
-                focusedLabelColor = Color.Transparent, // Color del label cuando el TextField está enfocado
-                unfocusedLabelColor = White.copy(alpha = ContentAlpha.medium), // Color del label cuando el TextField no está enfocado
-                focusedIndicatorColor = White, // Color del marco cuando el TextField está enfocado
-                unfocusedIndicatorColor = White.copy(alpha = ContentAlpha.disabled) // Color del marco cuando el TextField no está enfocado
+                textColor = White,
+                focusedLabelColor = Color.Transparent,
+                unfocusedLabelColor = White.copy(alpha = ContentAlpha.medium),
+                focusedIndicatorColor = White,
+                unfocusedIndicatorColor = White.copy(alpha = ContentAlpha.disabled)
             )
         )
 
@@ -109,10 +109,10 @@ fun DevocionalScreen(arde: ArdeEntity?, onSave: (ArdeEntity) -> Unit, onClose: (
             Button(onClick = onClose) {
                 androidx.compose.material.Text("Cerrar")
             }
+
             Spacer(modifier = Modifier.width(8.dp))
 
             Button(onClick = {
-                // Lógica para compartir el devocional
                 val shareIntent = Intent().apply {
                     action = Intent.ACTION_SEND
                     putExtra(Intent.EXTRA_TEXT, "A.R.D.E.: ${arde.reference}\n\n $devocional")
@@ -124,19 +124,16 @@ fun DevocionalScreen(arde: ArdeEntity?, onSave: (ArdeEntity) -> Unit, onClose: (
                 androidx.compose.material.Text("Compartir")
             }
         }
-// Dentro de Column en DevocionalScreen
+
         Spacer(modifier = Modifier.height(16.dp))
         if (arde.reference != null) {
             BibleWebView(ardeReference = arde.reference)
         }
-
     }
 }
 
-
 class SafeWebViewClient : WebViewClient() {
     override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler?, error: SslError?) {
-        // Aquí mostramos una alerta al usuario en lugar de proceder automáticamente con todos los errores SSL
         handler?.cancel() // Cancela la carga de la página cuando hay un error SSL
 
         // Muestra una alerta al usuario (opcional)
@@ -151,7 +148,6 @@ class SafeWebViewClient : WebViewClient() {
     }
 
     override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-        // Mantén esta implementación igual
         if (request?.url.toString() == "https://finished-loading/") {
             view?.visibility = View.VISIBLE
             return true
@@ -160,28 +156,30 @@ class SafeWebViewClient : WebViewClient() {
     }
 
     override fun onPageFinished(view: WebView?, url: String?) {
-        // Mantén esta implementación igual
         super.onPageFinished(view, url)
         val js = """
             setTimeout(function() {
                 // Selecciona el contenido deseado
-                var desiredContent = document.querySelector('div.ChapterContent_reader__Dt27r').outerHTML;
+                var desiredContent = document.querySelector('div.ChapterContent_reader__Dt27r');
+                
+                // Elimina todos los elementos con la clase 'ChapterContent_note'
+                var notes = desiredContent.querySelectorAll('.ChapterContent_note__YlDW0');
+                notes.forEach(function(note) {
+                    note.remove();
+                });
+                
+                // Obtén el contenido HTML del elemento filtrado
+                var desiredHtml = desiredContent.outerHTML;
                 
                 // Selecciona los botones de navegación
                 var navigationContainer = document.querySelector('div.w-\\[90vw\\].flex');
-                // Asegúrate de que los botones existen antes de intentar manipularlos
                 if (navigationContainer) {
                     navigationContainer.style.position = 'relative';
                     navigationContainer.style.bottom = 'auto';
-                    // Convierte los botones de navegación a HTML después de ajustar su estilo
                     var navigationButtons = navigationContainer.outerHTML;
                     
-                    
-                    // Selecciona el contenido adicional específico
-                    //var additionalContentSelector = document.querySelector('div.p-2').outerHTML; // Ajusta este selector según sea necesario
-                    
                     // Limpia el body y establece el nuevo contenido
-                    document.body.innerHTML =  desiredContent + navigationButtons;
+                    document.body.innerHTML =  desiredHtml + navigationButtons;
                     
                     // Añade estilos para fondo transparente y texto blanco
                     document.body.style.backgroundColor = 'transparent';
@@ -192,8 +190,8 @@ class SafeWebViewClient : WebViewClient() {
                         elements[i].style.backgroundColor = 'transparent';
                         elements[i].style.color = 'white';
                     }
-                    window.location.href = 'https://finished-loading/';                             
-                }                           
+                    window.location.href = 'https://finished-loading/';
+                }
             }, 1500);
         """
         view?.evaluateJavascript(js, null)

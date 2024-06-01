@@ -46,7 +46,6 @@ import com.vidaensupalabra.vsp.ui.theme.White
 @Composable
 fun MusicaScreen(viewModel: MainViewModel) {
     val canciones = viewModel.canciones.observeAsState(initial = listOf())
-    val isYouTubeVideoPlaying = remember { mutableStateOf(false) }
 
     LazyColumn(modifier = Modifier.padding(16.dp)) {
         item {
@@ -83,8 +82,7 @@ fun MusicaScreen(viewModel: MainViewModel) {
 
         item {
             Spacer(modifier = Modifier.height(16.dp))
-            VideosDomingo()
-
+            VideosDomingo(viewModel)
         }
     }
 }
@@ -124,7 +122,6 @@ fun CancionCard(titulo: String, artista: String, letra: String) {
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                // Usamos TextWithStyleFromFirestore para mostrar la letra con estilo
                 TextoConformato(letra)
             }
         }
@@ -133,7 +130,6 @@ fun CancionCard(titulo: String, artista: String, letra: String) {
 
 @Composable
 fun TextoConformato(text: String) {
-    // Preprocesamos el texto para reemplazar "/n" con el salto de línea "\n"
     val processedText = text.replace("/n", "\n")
 
     val styledText = buildAnnotatedString {
@@ -145,20 +141,18 @@ fun TextoConformato(text: String) {
             startIndex = processedText.indexOf("*", currentIndex)
             if (startIndex == -1) {
                 append(processedText.substring(currentIndex, processedText.length))
-                break // No more bold text, append the rest and exit
+                break
             }
             endIndex = processedText.indexOf("*", startIndex + 1)
             if (endIndex == -1) {
                 append(processedText.substring(currentIndex, processedText.length))
-                break // No closing tag, append the rest and exit
+                break
             }
 
-            // Text before bold
             if (startIndex > currentIndex) {
                 append(processedText.substring(currentIndex, startIndex))
             }
 
-            // Bold text
             withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, color = White)) {
                 append(processedText.substring(startIndex + 1, endIndex))
             }
@@ -179,8 +173,8 @@ fun extractoVideosDomingo(url: String): String? {
 @Composable
 fun VideosDomingo(viewModel: MainViewModel = viewModel()) {
     val canciones = viewModel.canciones.observeAsState(initial = listOf())
-    // Define un estado MutableMap para manejar la reproducción de cada video
     val isPlaying = remember { mutableStateMapOf<String, Boolean>() }
+    val currentTime = remember { mutableStateMapOf<String, Float>() }
 
     if (canciones.value.isNotEmpty()) {
         val cancion = canciones.value[0]
@@ -188,10 +182,12 @@ fun VideosDomingo(viewModel: MainViewModel = viewModel()) {
         val videoId2 = extractoVideosDomingo(cancion.youtubevideo2) ?: ""
         val videoId3 = extractoVideosDomingo(cancion.youtubevideo3) ?: ""
 
-        // Inicializa el estado de reproducción para cada video
         isPlaying.putIfAbsent(videoId1, false)
         isPlaying.putIfAbsent(videoId2, false)
         isPlaying.putIfAbsent(videoId3, false)
+        currentTime.putIfAbsent(videoId1, 0f)
+        currentTime.putIfAbsent(videoId2, 0f)
+        currentTime.putIfAbsent(videoId3, 0f)
 
         Log.d("VideosYoutubeMasVideos", "Loading YouTube video with ID: $videoId1")
         Log.d("VideosYoutubeMasVideos", "Loading YouTube video with ID: $videoId2")
@@ -209,17 +205,16 @@ fun VideosDomingo(viewModel: MainViewModel = viewModel()) {
                 modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
             )
             if (videoId1.isNotEmpty()) {
-                YouTubeVideoView(videoId = videoId1, isPlaying)
+                YouTubeVideoView(videoId = videoId1, isPlaying, currentTime)
             }
             Spacer(modifier = Modifier.height(16.dp))
             if (videoId2.isNotEmpty()) {
-                YouTubeVideoView(videoId = videoId2, isPlaying)
+                YouTubeVideoView(videoId = videoId2, isPlaying, currentTime)
             }
             Spacer(modifier = Modifier.height(16.dp))
 
             if (videoId3.isNotEmpty()) {
-                YouTubeVideoView(videoId = videoId3, isPlaying)
-
+                YouTubeVideoView(videoId = videoId3, isPlaying, currentTime)
             }
         }
     }

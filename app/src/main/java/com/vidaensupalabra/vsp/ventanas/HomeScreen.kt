@@ -223,7 +223,8 @@ fun extractYouTubeVideoId(url: String): String? {
 fun VideosYoutubeMasVideos(viewModel: MainViewModel = viewModel(), isPlaying: MutableState<Boolean>) {
     val context = LocalContext.current
     val announcements = viewModel.anuncios
-    val isPlaying = remember { mutableStateMapOf<String, Boolean>() }
+    val isPlayingState = remember { mutableStateMapOf<String, Boolean>() }
+    val currentTime = remember { mutableStateMapOf<String, Float>() }
 
     if (announcements.isNotEmpty()) {
         val announcement = announcements[0] // Utiliza el primer anuncio de la lista
@@ -245,7 +246,9 @@ fun VideosYoutubeMasVideos(viewModel: MainViewModel = viewModel(), isPlaying: Mu
             )
 
             // Verifica que el ID del video no esté vacío antes de intentar mostrar el video
-                YouTubeVideoView(videoId = videoId, isPlaying)
+            if (videoId.isNotEmpty()) {
+                YouTubeVideoView(videoId = videoId, isPlaying = isPlayingState, currentTime = currentTime)
+            }
 
             Spacer(modifier = Modifier.height(12.dp))
 

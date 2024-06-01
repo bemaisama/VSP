@@ -1,11 +1,16 @@
 package com.vidaensupalabra.vsp.notificaciones
 
+import android.Manifest
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
@@ -19,9 +24,15 @@ import java.util.concurrent.TimeUnit
 
 class NotificationWorker(appContext: Context, workerParams: WorkerParameters) : Worker(appContext, workerParams) {
     override fun doWork(): Result {
-        val title = inputData.getString("title") ?: "Notificación"
-        val message = inputData.getString("message") ?: "Mensaje de notificación"
+        val title = inputData.getString("title") ?: return Result.failure()
+        val ardeReference = inputData.getString("ardeReference") ?: return Result.failure()
+        val message = "Este es el ARDE del día: $ardeReference"
+
         LocalNotificationService(applicationContext).showNotification(title, message)
+
+        // Reprogramar la siguiente ejecución
+        scheduleDailyNotifications(applicationContext, ardeReference)
+
         return Result.success()
     }
 }
@@ -30,6 +41,14 @@ class LocalNotificationService(private val context: Context) {
 
     fun showNotification(title: String, message: String) {
         val notificationId = 101
+
+        // Verificar permisos en Android 13 o superior
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                // Si el permiso no está concedido, se debería solicitar al usuario. Aquí solo retornamos.
+                return
+            }
+        }
 
         val builder = NotificationCompat.Builder(context, "mi_canal_id")
             .setSmallIcon(R.drawable.ic_stat_vsp)
@@ -72,23 +91,70 @@ fun scheduleWeeklyNotification(context: Context) {
 
     val weeklyWorkRequest = PeriodicWorkRequestBuilder<NotificationWorker>(7, TimeUnit.DAYS)
         .setInitialDelay(initialDelay, TimeUnit.MILLISECONDS)
-        .setInputData(workDataOf("title" to "Recordatorio Semanal", "message" to "¡Es domingo a las 7 AM!"))
+        .setInputData(workDataOf("title" to "Recordatorio", "message" to "Recuerda Alistarte \npara el día del Señor!"))
         .build()
 
     workManager.enqueueUniquePeriodicWork(
         "weeklyNotification",
-        ExistingPeriodicWorkPolicy.REPLACE,
+        ExistingPeriodicWorkPolicy.KEEP,
         weeklyWorkRequest
     )
 }
 
-fun scheduleTestNotification(context: Context, delayInSeconds: Long) {
+
+fun scheduleDailyNotifications(context: Context, ardeReference: String) {
     val workManager = WorkManager.getInstance(context)
 
-    val testWorkRequest = OneTimeWorkRequestBuilder<NotificationWorker>()
-        .setInitialDelay(delayInSeconds, TimeUnit.SECONDS)
-        .setInputData(workDataOf("title" to "Prueba de Notificación", "message" to "Esta es una notificación de prueba."))
+    val now = Calendar.getInstance()
+
+    // Configurar la primera notificación a las 6 am
+    val firstNotificationTime = Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, 6)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+
+        if (before(now)) {
+            add(Calendar.DAY_OF_YEAR, 1)
+        }
+    }
+
+    val firstInitialDelay = firstNotificationTime.timeInMillis - now.timeInMillis
+
+    val firstNotificationWorkRequest = OneTimeWorkRequestBuilder<NotificationWorker>()
+        .setInitialDelay(firstInitialDelay, TimeUnit.MILLISECONDS)
+        .setInputData(workDataOf("title" to "A.R.D.E", "ardeReference" to ardeReference))
         .build()
 
-    workManager.enqueue(testWorkRequest)
+    // Configurar la segunda notificación a las 7 pm
+    val secondNotificationTime = Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, 19)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+
+        if (before(now)) {
+            add(Calendar.DAY_OF_YEAR, 1)
+        }
+    }
+
+    val secondInitialDelay = secondNotificationTime.timeInMillis - now.timeInMillis
+
+    val secondNotificationWorkRequest = OneTimeWorkRequestBuilder<NotificationWorker>()
+        .setInitialDelay(secondInitialDelay, TimeUnit.MILLISECONDS)
+        .setInputData(workDataOf("title" to "Recordatorio de la Tarde", "ardeReference" to ardeReference))
+        .build()
+
+    // Programar los WorkRequest
+    workManager.enqueueUniqueWork(
+        "dailyNotification6am",
+        ExistingWorkPolicy.REPLACE,
+        firstNotificationWorkRequest
+    )
+
+    workManager.enqueueUniqueWork(
+        "dailyNotification7pm",
+        ExistingWorkPolicy.REPLACE,
+        secondNotificationWorkRequest
+    )
 }
