@@ -405,7 +405,7 @@ class MainActivity : ComponentActivity() {
             setDataAndType(
                 FileProvider.getUriForFile(
                     this@MainActivity,
-                    BuildConfig.APPLICATION_ID + ".provider",
+                    "${BuildConfig.APPLICATION_ID}.provider",
                     File(apkPath)
                 ),
                 "application/vnd.android.package-archive"

@@ -39,7 +39,7 @@ suspend fun downloadUpdate(downloadUrl: String, outputPath: String): Boolean = w
 }
 
 suspend fun checkForUpdate(currentVersion: String): String? = withContext(Dispatchers.IO) {
-    val url = URL("https://raw.githubusercontent.com/bemaisama/VSP/main/version.json")
+    val url = URL("https://raw.githubusercontent.com/bemaisama/VSP/master/app/src/main/java/com/vidaensupalabra/vsp/version.json")
     val connection = url.openConnection() as HttpURLConnection
 
     try {
