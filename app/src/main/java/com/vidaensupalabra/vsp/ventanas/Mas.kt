@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.vidaensupalabra.vsp.BuildConfig
 import com.vidaensupalabra.vsp.Screens
 import com.vidaensupalabra.vsp.ui.theme.VspBase
 import com.vidaensupalabra.vsp.ui.theme.VspMarcoTransparente50
@@ -80,7 +81,29 @@ fun Mas(navController: NavController) {
                     color = White,
                     style = androidx.compose.material3.MaterialTheme.typography.titleLarge
                 )
+            }
 
+            // Añade el nuevo TextButton para "Acerca de esta aplicación"
+            TextButton(
+                onClick = {
+                    // Acción que quieras realizar cuando se presione este botón, si es necesario
+                },
+                colors = ButtonDefaults.buttonColors(backgroundColor = VspMarcoTransparente50),
+                modifier = Modifier.padding(16.dp),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Column {
+                    Text(
+                        text = "Acerca de esta aplicación",
+                        color = White,
+                        style = androidx.compose.material3.MaterialTheme.typography.titleLarge
+                    )
+                    Text(
+                        text = "Versión: ${BuildConfig.VERSION_NAME}",
+                        color = White,
+                        style = androidx.compose.material3.MaterialTheme.typography.bodyLarge
+                    )
+                }
             }
         }
     }
