@@ -1,6 +1,5 @@
 package com.vidaensupalabra.vsp.otros
 
-import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -40,7 +39,7 @@ suspend fun downloadUpdate(downloadUrl: String, outputPath: String): Boolean = w
 }
 
 suspend fun checkForUpdate(currentVersion: String): String? = withContext(Dispatchers.IO) {
-    val url = URL("https://raw.githubusercontent.com/bemaisama/VSP/master/version.json")
+    val url = URL("https://raw.githubusercontent.com/bemaisama/VSP/master/app/src/main/java/com/vidaensupalabra/vsp/version.json")
     val connection = url.openConnection() as HttpURLConnection
 
     try {
@@ -55,18 +54,10 @@ suspend fun checkForUpdate(currentVersion: String): String? = withContext(Dispat
             val latestVersion = jsonObject.getString("latestVersion")
             val downloadUrl = jsonObject.getString("url")
 
-            Log.d("UpdateChecker", "Current version: $currentVersion, Latest version: $latestVersion")
-
             if (latestVersion != currentVersion) {
-                Log.d("UpdateChecker", "Update available: $downloadUrl")
                 return@withContext downloadUrl
             }
-        } else {
-            Log.e("UpdateChecker", "Failed to fetch update: ${connection.responseCode}")
         }
-    } catch (e: Exception) {
-        e.printStackTrace()
-        Log.e("UpdateChecker", "Exception: ${e.message}")
     } finally {
         connection.disconnect()
     }
