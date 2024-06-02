@@ -40,9 +40,11 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -66,6 +68,8 @@ import com.google.firebase.messaging.RemoteMessage
 import com.vidaensupalabra.vsp.notificaciones.scheduleDailyNotifications
 import com.vidaensupalabra.vsp.notificaciones.scheduleWeeklyNotification
 import com.vidaensupalabra.vsp.otros.NotificationScheduler
+import com.vidaensupalabra.vsp.otros.checkForUpdate
+import com.vidaensupalabra.vsp.otros.downloadUpdate
 import com.vidaensupalabra.vsp.otros.getCurrentArdeReference
 import com.vidaensupalabra.vsp.ui.theme.VSPTheme
 import com.vidaensupalabra.vsp.ui.theme.VspBase
@@ -84,7 +88,9 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
+import java.io.File
 import java.io.InputStreamReader
+
 
 class SecureWebViewActivity : AppCompatActivity() {
 
@@ -344,6 +350,43 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Crear canal de notificación
+        createNotificationChannel()
+
+        setContent {
+            VSPTheme {
+                MainScreen()
+            }
+        }
+
+        // Programar notificaciones
+        scheduleWeeklyNotification(this)
+
+        // Inicializar y registrar el NotificationScheduler
+        val notificationScheduler = NotificationScheduler(this, lifecycle)
+        lifecycle.addObserver(notificationScheduler)
+
+        // Verificar actualizaciones
+        lifecycleScope.launch {
+            val currentVersion = BuildConfig.VERSION_NAME
+            val downloadPath = "${filesDir}/update.apk"
+            val updateUrl = checkForUpdate(currentVersion)
+            if (updateUrl != null) {
+                val success = downloadUpdate(updateUrl, downloadPath)
+                if (success) {
+                    // Aquí puedes manejar la instalación del APK descargado
+                    installApk(downloadPath)
+                } else {
+                    Log.e("MainActivity", "Failed to download the update.")
+                }
+            } else {
+                Log.i("MainActivity", "No updates available.")
+            }
+        }
+    }
+
+    private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val name = "Mi Canal de Notificación"
             val descriptionText = "Descripción de Mi Canal de Notificación"
@@ -355,18 +398,22 @@ class MainActivity : ComponentActivity() {
                 getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
         }
+    }
 
-        setContent {
-            VSPTheme {
-                MainScreen()
-            }
+    private fun installApk(apkPath: String) {
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(
+                FileProvider.getUriForFile(
+                    this@MainActivity,
+                    BuildConfig.APPLICATION_ID + ".provider",
+                    File(apkPath)
+                ),
+                "application/vnd.android.package-archive"
+            )
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-
-        scheduleWeeklyNotification(this)
-
-        // Inicializar y registrar el NotificationScheduler
-        val notificationScheduler = NotificationScheduler(this, lifecycle)
-        lifecycle.addObserver(notificationScheduler)
+        startActivity(intent)
     }
 }
 
