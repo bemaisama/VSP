@@ -63,7 +63,7 @@ fun scheduleWeeklyNotification(context: Context) {
     val notificationIntent = Intent(context, NotificationReceiver::class.java).apply {
         putExtra("ARDE_REFERENCE", "Recuerda Alistarte para el día del Señor!")
     }
-    val pendingIntent = PendingIntent.getBroadcast(context, 1, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT)
+    val pendingIntent = PendingIntent.getBroadcast(context, 1, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 
     val calendar = Calendar.getInstance().apply {
         timeInMillis = System.currentTimeMillis()
@@ -88,7 +88,7 @@ fun scheduleNotifications(context: Context, ardeReference: String) {
     val notificationIntent = Intent(context, NotificationReceiver::class.java).apply {
         putExtra("ARDE_REFERENCE", ardeReference)
     }
-    val pendingIntent = PendingIntent.getBroadcast(context, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT)
+    val pendingIntent = PendingIntent.getBroadcast(context, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 
     scheduleAlarm(alarmManager, pendingIntent, 6, 0)
     scheduleAlarm(alarmManager, pendingIntent, 19, 0)
