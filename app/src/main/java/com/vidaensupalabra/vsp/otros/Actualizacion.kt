@@ -10,12 +10,14 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 suspend fun downloadUpdate(downloadUrl: String, outputPath: String): Boolean = withContext(Dispatchers.IO) {
+    Log.d("DownloadUpdate", "Starting download from URL: $downloadUrl")
     val url = URL(downloadUrl)
     val connection = url.openConnection() as HttpURLConnection
 
     try {
         connection.requestMethod = "GET"
         connection.connect()
+        Log.d("DownloadUpdate", "Response Code: ${connection.responseCode}")
 
         if (connection.responseCode == HttpURLConnection.HTTP_OK) {
             val inputStream: InputStream = connection.inputStream
@@ -30,12 +32,18 @@ suspend fun downloadUpdate(downloadUrl: String, outputPath: String): Boolean = w
 
             outputStream.close()
             inputStream.close()
-
+            Log.d("DownloadUpdate", "Download successful, saved to $outputPath")
             return@withContext true
+        } else {
+            Log.e("DownloadUpdate", "Failed to download file: ${connection.responseCode}")
         }
+    } catch (e: Exception) {
+        e.printStackTrace()
+        Log.e("DownloadUpdate", "Exception: ${e.message}")
     } finally {
         connection.disconnect()
     }
+    Log.d("DownloadUpdate", "Download failed")
     return@withContext false
 }
 
@@ -46,7 +54,6 @@ suspend fun checkForUpdate(currentVersion: String): String? = withContext(Dispat
     try {
         connection.requestMethod = "GET"
         connection.connect()
-
         Log.d("CheckForUpdate", "Response Code: ${connection.responseCode}")
 
         if (connection.responseCode == HttpURLConnection.HTTP_OK) {

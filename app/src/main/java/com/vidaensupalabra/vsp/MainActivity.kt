@@ -1,6 +1,7 @@
 package com.vidaensupalabra.vsp
 
 import MultimediaScreen
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.app.Application
@@ -10,9 +11,11 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.net.http.SslError
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import android.webkit.SslErrorHandler
 import android.webkit.WebView
@@ -347,8 +350,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 // ComponentActivity y Composables
 @RequiresApi(Build.VERSION_CODES.O)
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Solicitar permisos en tiempo de ejecución
+        requestStoragePermissions()
 
         // Crear canal de notificación
         createNotificationChannel()
@@ -361,22 +368,34 @@ class MainActivity : ComponentActivity() {
 
         // Programar notificaciones semanales
         scheduleWeeklyNotification(this)
+
         lifecycleScope.launch {
             val ardeReference = getCurrentArdeReference(this@MainActivity)
             scheduleNotifications(this@MainActivity, ardeReference)
         }
-
 
         // Verificar actualizaciones
         lifecycleScope.launch {
             val currentVersion = BuildConfig.VERSION_NAME
             val downloadPath = "${filesDir}/update.apk"
             val updateUrl = checkForUpdate(currentVersion)
+            Log.d("MainActivity", "Update URL: $updateUrl")
             if (updateUrl != null) {
                 showUpdateDialog(updateUrl, downloadPath)
             } else {
                 Log.i("MainActivity", "No updates available.")
             }
+        }
+    }
+
+    private fun requestStoragePermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            requestPermissions(
+                arrayOf(
+                    Manifest.permission.READ_EXTERNAL_STORAGE,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+                ), 1
+            )
         }
     }
 
@@ -413,24 +432,70 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun installApk(apkPath: String) {
+        val apkFile = File(apkPath)
+        if (!apkFile.exists()) {
+            Log.e("MainActivity", "APK file does not exist: $apkPath")
+            return
+        }
+
+        val apkUri = FileProvider.getUriForFile(
+            this,
+            "${BuildConfig.APPLICATION_ID}.provider",
+            apkFile
+        )
+
+        Log.d("MainActivity", "APK URI: $apkUri")
+
         val intent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(
-                FileProvider.getUriForFile(
-                    this@MainActivity,
-                    "${BuildConfig.APPLICATION_ID}.provider",
-                    File(apkPath)
-                ),
-                "application/vnd.android.package-archive"
-            )
+            setDataAndType(apkUri, "application/vnd.android.package-archive")
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        startActivity(intent)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (!packageManager.canRequestPackageInstalls()) {
+                startActivityForResult(
+                    Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).setData(
+                        Uri.parse("package:$packageName")
+                    ), 1234
+                )
+            } else {
+                startInstallIntent(intent)
+            }
+        } else {
+            startInstallIntent(intent)
+        }
     }
 
+    private fun startInstallIntent(intent: Intent) {
+        try {
+            startActivity(intent)
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Error starting install activity: ${e.message}")
+            e.printStackTrace()
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == 1234) {
+            // Verifica si el permiso fue otorgado y vuelve a intentar la instalación
+            val downloadPath = "${filesDir}/update.apk"
+            val apkUri = FileProvider.getUriForFile(
+                this,
+                "${BuildConfig.APPLICATION_ID}.provider",
+                File(downloadPath)
+            )
+
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(apkUri, "application/vnd.android.package-archive")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startInstallIntent(intent)
+        }
+    }
 }
-
-
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
