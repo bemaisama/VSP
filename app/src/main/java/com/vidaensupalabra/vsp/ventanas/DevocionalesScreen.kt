@@ -30,7 +30,6 @@ import androidx.compose.material.ContentAlpha
 import androidx.compose.material.TextFieldDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -41,8 +40,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.vidaensupalabra.vsp.ArdeEntity
-import com.vidaensupalabra.vsp.notificaciones.scheduleDailyNotifications
-import com.vidaensupalabra.vsp.otros.getCurrentArdeReference
 import com.vidaensupalabra.vsp.ui.theme.VspBase
 import com.vidaensupalabra.vsp.ui.theme.White
 
@@ -59,10 +56,6 @@ fun DevocionalScreen(arde: ArdeEntity?, onSave: (ArdeEntity) -> Unit, onClose: (
 
     var devocional by rememberSaveable { mutableStateOf(arde.devocional) }
 
-    LaunchedEffect(Unit) {
-        val ardeReference = getCurrentArdeReference(context)
-        scheduleDailyNotifications(context, ardeReference)
-    }
 
     Column(
         modifier = Modifier

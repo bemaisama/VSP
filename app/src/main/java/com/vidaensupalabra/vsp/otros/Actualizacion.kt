@@ -1,5 +1,6 @@
 package com.vidaensupalabra.vsp.otros
 
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -46,18 +47,30 @@ suspend fun checkForUpdate(currentVersion: String): String? = withContext(Dispat
         connection.requestMethod = "GET"
         connection.connect()
 
+        Log.d("CheckForUpdate", "Response Code: ${connection.responseCode}")
+
         if (connection.responseCode == HttpURLConnection.HTTP_OK) {
             val inputStream = connection.inputStream
             val response = inputStream.bufferedReader().use { it.readText() }
+
+            Log.d("CheckForUpdate", "Response: $response")
 
             val jsonObject = JSONObject(response)
             val latestVersion = jsonObject.getString("latestVersion")
             val downloadUrl = jsonObject.getString("url")
 
+            Log.d("CheckForUpdate", "Current Version: $currentVersion, Latest Version: $latestVersion")
+
             if (latestVersion != currentVersion) {
+                Log.d("CheckForUpdate", "Update Available: $downloadUrl")
                 return@withContext downloadUrl
             }
+        } else {
+            Log.e("CheckForUpdate", "Failed to fetch update: ${connection.responseCode}")
         }
+    } catch (e: Exception) {
+        e.printStackTrace()
+        Log.e("CheckForUpdate", "Exception: ${e.message}")
     } finally {
         connection.disconnect()
     }

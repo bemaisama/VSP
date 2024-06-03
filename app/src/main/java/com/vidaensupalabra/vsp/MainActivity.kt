@@ -2,6 +2,7 @@ package com.vidaensupalabra.vsp
 
 import MultimediaScreen
 import android.annotation.SuppressLint
+import android.app.AlertDialog
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -65,9 +66,8 @@ import androidx.room.Update
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
-import com.vidaensupalabra.vsp.notificaciones.scheduleDailyNotifications
+import com.vidaensupalabra.vsp.notificaciones.scheduleNotifications
 import com.vidaensupalabra.vsp.notificaciones.scheduleWeeklyNotification
-import com.vidaensupalabra.vsp.otros.NotificationScheduler
 import com.vidaensupalabra.vsp.otros.checkForUpdate
 import com.vidaensupalabra.vsp.otros.downloadUpdate
 import com.vidaensupalabra.vsp.otros.getCurrentArdeReference
@@ -116,7 +116,7 @@ class BootReceiver : BroadcastReceiver() {
         if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
             GlobalScope.launch {
                 val ardeReference = getCurrentArdeReference(context)
-                scheduleDailyNotifications(context, ardeReference)
+                scheduleNotifications(context, ardeReference)
             }
         }
     }
@@ -360,12 +360,13 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // Programar notificaciones
+        // Programar notificaciones semanales
         scheduleWeeklyNotification(this)
+        lifecycleScope.launch {
+            val ardeReference = getCurrentArdeReference(this@MainActivity)
+            scheduleNotifications(this@MainActivity, ardeReference)
+        }
 
-        // Inicializar y registrar el NotificationScheduler
-        val notificationScheduler = NotificationScheduler(this, lifecycle)
-        lifecycle.addObserver(notificationScheduler)
 
         // Verificar actualizaciones
         lifecycleScope.launch {
@@ -373,17 +374,29 @@ class MainActivity : ComponentActivity() {
             val downloadPath = "${filesDir}/update.apk"
             val updateUrl = checkForUpdate(currentVersion)
             if (updateUrl != null) {
-                val success = downloadUpdate(updateUrl, downloadPath)
-                if (success) {
-                    // Aquí puedes manejar la instalación del APK descargado
-                    installApk(downloadPath)
-                } else {
-                    Log.e("MainActivity", "Failed to download the update.")
-                }
+                showUpdateDialog(updateUrl, downloadPath)
             } else {
                 Log.i("MainActivity", "No updates available.")
             }
         }
+    }
+
+    private fun showUpdateDialog(updateUrl: String, downloadPath: String) {
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Nueva versión disponible")
+        builder.setMessage("Hay una nueva versión disponible. ¿Deseas actualizar ahora?")
+        builder.setPositiveButton("Actualizar") { _, _ ->
+            lifecycleScope.launch {
+                val success = downloadUpdate(updateUrl, downloadPath)
+                if (success) {
+                    installApk(downloadPath)
+                } else {
+                    Log.e("MainActivity", "Failed to download the update.")
+                }
+            }
+        }
+        builder.setNegativeButton("Más tarde", null)
+        builder.show()
     }
 
     private fun createNotificationChannel() {
@@ -415,7 +428,10 @@ class MainActivity : ComponentActivity() {
         }
         startActivity(intent)
     }
+
 }
+
+
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
