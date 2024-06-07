@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.os.Build
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
@@ -47,10 +48,12 @@ class NotificationReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         Log.d("NotificationReceiver", "onReceive called")
         val ardeReference = intent.getStringExtra("ARDE_REFERENCE") ?: "No ARDE reference found"
-        showNotification(context, "ARDE", ardeReference)
+        val message = intent.getStringExtra("MESSAGE") ?: ardeReference
+        val showBanner = intent.getBooleanExtra("SHOW_BANNER", false)
+        showNotification(context, "ARDE", message, showBanner)
     }
 
-    private fun showNotification(context: Context, title: String, message: String) {
+    private fun showNotification(context: Context, title: String, message: String, showBanner: Boolean) {
         Log.d("NotificationReceiver", "showNotification called with title: $title, message: $message")
         val channelId = "ARDE_CHANNEL_ID"
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -68,6 +71,11 @@ class NotificationReceiver : BroadcastReceiver() {
             .setContentTitle(title)
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+
+        if (showBanner) {
+            val bannerBitmap = BitmapFactory.decodeResource(context.resources, R.drawable.banner)
+            notificationBuilder.setStyle(NotificationCompat.BigPictureStyle().bigPicture(bannerBitmap))
+        }
 
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -101,7 +109,7 @@ fun scheduleWeeklyNotification(context: Context) {
     Log.d("AlarmManager", "scheduleWeeklyNotification called")
     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-    val pendingIntent = createPendingIntent(context, "Recuerda Alistarte para el día del Señor!", 1)
+    val pendingIntent = createPendingIntent(context, "Recuerda Alistarte para el día del Señor!", 1, true)
 
     val calendar = Calendar.getInstance().apply {
         timeInMillis = System.currentTimeMillis()
@@ -144,9 +152,10 @@ fun scheduleWeeklyNotification(context: Context) {
     }
 }
 
-private fun createPendingIntent(context: Context, ardeReference: String, requestCode: Int): PendingIntent {
+private fun createPendingIntent(context: Context, message: String, requestCode: Int, showBanner: Boolean = false): PendingIntent {
     val notificationIntent = Intent(context, NotificationReceiver::class.java).apply {
-        putExtra("ARDE_REFERENCE", ardeReference)
+        putExtra("MESSAGE", message)
+        putExtra("SHOW_BANNER", showBanner)
     }
     return PendingIntent.getBroadcast(context, requestCode, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 }
@@ -161,10 +170,7 @@ fun scheduleNotifications(context: Context, ardeReference: String) {
 }
 
 private fun scheduleNotification(context: Context, alarmManager: AlarmManager, ardeReference: String, hour: Int, minute: Int, requestCode: Int) {
-    val notificationIntent = Intent(context, NotificationReceiver::class.java).apply {
-        putExtra("ARDE_REFERENCE", ardeReference)
-    }
-    val pendingIntent = PendingIntent.getBroadcast(context, requestCode, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+    val pendingIntent = createPendingIntent(context, ardeReference, requestCode)
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         if (canScheduleExactAlarms(context)) {

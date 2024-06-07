@@ -75,22 +75,21 @@ fun HomeScreen() {
     val isYouTubeVideoPlaying = remember { mutableStateOf(false) }
 
     Scaffold(
-        backgroundColor = VspBase, // Hace transparente el fondo del AppBar
+        backgroundColor = VspBase, // Color de fondo de la pantalla
         topBar = {
             TopAppBar(
-                modifier = Modifier .height(90.dp),
+                modifier = Modifier.height(90.dp),
                 backgroundColor = Color.Transparent, // Hace transparente el fondo del AppBar
                 contentColor = Color.White,
                 elevation = 0.dp // Elimina la sombra debajo del AppBar
             ) {
                 Image(
-                    painter = painterResource(id = drawable.banner),
+                    painter = painterResource(id = R.drawable.banner),
                     contentDescription = "Banner Iglesia",
                     modifier = Modifier
                         .fillMaxWidth()
                         .fillMaxHeight() // Ajusta esta altura para hacer el banner más grande
                         .padding(horizontal = 0.dp, vertical = 8.dp) // Ajusta el padding si es necesario
-
                 )
             }
         }
@@ -98,7 +97,8 @@ fun HomeScreen() {
         Column(
             modifier = Modifier
                 .padding(innerPadding)
-                .fillMaxWidth()
+                .fillMaxSize()
+                .background(VspBase) // Asegura que el fondo de la columna también tenga el color base
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -106,6 +106,7 @@ fun HomeScreen() {
             Box(
                 modifier = Modifier
                     .height(370.dp)
+                    .fillMaxWidth()
             ) {
                 BackgroundVideo(
                     modifier = Modifier.fillMaxSize(),
@@ -124,17 +125,15 @@ fun HomeScreen() {
                 "https://story.church/",
                 "https://www.acts29.com/network/latin-america/?lang=es",
                 "https://thepillarnetwork.com/"
-
             )
         }
     }
 }
 
-//////////////SECUNDARIOS//////////////////////////////////////////////////
 @Composable
 fun BackgroundVideo(modifier: Modifier = Modifier, isPlaying: MutableState<Boolean>) {
-    LocalContext.current
-    LocalLifecycleOwner.current.lifecycle
+    val context = LocalContext.current
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
 
     var videoView: VideoView? = null
 
@@ -157,10 +156,8 @@ fun BackgroundVideo(modifier: Modifier = Modifier, isPlaying: MutableState<Boole
         )
     }
 
-
     // Utilizamos DisposableEffect para detener la reproducción y liberar el VideoView cuando el composable es removido
     DisposableEffect(isPlaying.value) {
-        Log.d("BackgroundVideo", "isPlaying changed: ${isPlaying.value}")
         if (isPlaying.value) {
             videoView?.pause()
         } else {
@@ -182,9 +179,7 @@ fun TextoBienvenida() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .fillMaxHeight()
             .padding(16.dp),
-
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -199,7 +194,7 @@ fun TextoBienvenida() {
             text = "CRISTO ES SUFICIENTE!",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
-            color = VspMarco,
+            color = Color(0xFFBDBDBD), // Cambia este color si tienes VspMarco definido
             textAlign = TextAlign.Center
         )
 
