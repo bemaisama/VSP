@@ -1,6 +1,9 @@
 package com.vidaensupalabra.vsp.ventanas
 
 //noinspection UsingMaterialAndMaterial3Libraries
+import android.os.Build
+import android.view.MotionEvent
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,18 +17,23 @@ import androidx.compose.material.TextButton
 import androidx.compose.material.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.vidaensupalabra.vsp.BuildConfig
+import com.vidaensupalabra.vsp.MainActivity
 import com.vidaensupalabra.vsp.Screens
 import com.vidaensupalabra.vsp.ui.theme.VspBase
 import com.vidaensupalabra.vsp.ui.theme.VspMarcoTransparente50
 import com.vidaensupalabra.vsp.ui.theme.White
 
+@RequiresApi(Build.VERSION_CODES.O)
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun Mas(navController: NavController) {
+fun Mas(navController: NavController, mainActivity: MainActivity) {
     Scaffold(
         backgroundColor = VspBase,
         topBar = {
@@ -89,7 +97,21 @@ fun Mas(navController: NavController) {
                     // Acción que quieras realizar cuando se presione este botón, si es necesario
                 },
                 colors = ButtonDefaults.buttonColors(backgroundColor = VspMarcoTransparente50),
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier
+                    .padding(16.dp)
+                    .pointerInteropFilter { event ->
+                        when (event.action) {
+                            MotionEvent.ACTION_DOWN -> {
+                                mainActivity.handleLongPressStart()
+                                true
+                            }
+                            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                                mainActivity.handleLongPressEnd()
+                                true
+                            }
+                            else -> false
+                        }
+                    },
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Column {

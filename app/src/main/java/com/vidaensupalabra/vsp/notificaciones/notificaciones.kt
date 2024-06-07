@@ -1,6 +1,5 @@
 package com.vidaensupalabra.vsp.notificaciones
 
-import android.Manifest
 import android.app.AlarmManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -8,30 +7,63 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Build
-import androidx.core.app.ActivityCompat
+import android.service.notification.NotificationListenerService
+import android.service.notification.StatusBarNotification
+import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
 import com.vidaensupalabra.vsp.MainActivity
 import com.vidaensupalabra.vsp.R
+import com.vidaensupalabra.vsp.otros.getCurrentArdeReference
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Calendar
 
-private const val CHANNEL_ID = "ARDE_CHANNEL_ID"
-private const val NOTIFICATION_ID = 101
+const val CHANNEL_ID = "ARDE_CHANNEL_ID"
+private const val PERMISSION_REQUEST_CODE = 1001
 
-class LocalNotificationService(private val context: Context) {
+class NotificationListener : NotificationListenerService() {
 
-    fun showNotification(title: String, message: String) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-            // Permiso no concedido
-            return
+    override fun onNotificationRemoved(sbn: StatusBarNotification) {
+        super.onNotificationRemoved(sbn)
+        Log.d(TAG, "Notification removed: ${sbn.notification}")
+        cancelNotification(sbn.key)
+    }
+
+    override fun onNotificationPosted(sbn: StatusBarNotification) {
+        super.onNotificationPosted(sbn)
+        Log.d(TAG, "Notification posted: ${sbn.notification}")
+    }
+
+    companion object {
+        private const val TAG = "NotificationListener"
+    }
+}
+
+class NotificationReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        Log.d("NotificationReceiver", "onReceive called")
+        val ardeReference = intent.getStringExtra("ARDE_REFERENCE") ?: "No ARDE reference found"
+        showNotification(context, "ARDE", ardeReference)
+    }
+
+    private fun showNotification(context: Context, title: String, message: String) {
+        Log.d("NotificationReceiver", "showNotification called with title: $title, message: $message")
+        val channelId = "ARDE_CHANNEL_ID"
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(channelId, "ARDE Notifications", NotificationManager.IMPORTANCE_DEFAULT).apply {
+                description = "Channel for ARDE notifications"
+            }
+            notificationManager.createNotificationChannel(channel)
+            Log.d("NotificationReceiver", "Notification channel created")
         }
 
-        createNotificationChannelIfNeeded()
-
-        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+        val notificationBuilder = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.ic_stat_vsp)
             .setContentTitle(title)
             .setContentText(message)
@@ -41,65 +73,132 @@ class LocalNotificationService(private val context: Context) {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
         val pendingIntent: PendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
-        builder.setContentIntent(pendingIntent)
+        notificationBuilder.setContentIntent(pendingIntent)
 
-        NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, builder.build())
+        notificationManager.notify(101, notificationBuilder.build())
+        Log.d("NotificationReceiver", "Notification shown")
     }
+}
 
-    private fun createNotificationChannelIfNeeded() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(CHANNEL_ID, "ARDE Notifications", NotificationManager.IMPORTANCE_DEFAULT).apply {
-                description = "Channel for ARDE notifications"
+class BootReceiver : BroadcastReceiver() {
+    @RequiresApi(Build.VERSION_CODES.S)
+    override fun onReceive(context: Context, intent: Intent) {
+        Log.d("BootReceiver", "onReceive called")
+        if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
+            CoroutineScope(Dispatchers.IO).launch {
+                val ardeReference = getCurrentArdeReference(context)
+                Log.d("BootReceiver", "ardeReference obtained: $ardeReference")
+                withContext(Dispatchers.Main) {
+                    scheduleNotifications(context, ardeReference)
+                    scheduleWeeklyNotification(context)
+                }
             }
-            val notificationManager: NotificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
         }
     }
 }
 
 fun scheduleWeeklyNotification(context: Context) {
+    Log.d("AlarmManager", "scheduleWeeklyNotification called")
     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-    val notificationIntent = Intent(context, NotificationReceiver::class.java).apply {
-        putExtra("ARDE_REFERENCE", "Recuerda Alistarte para el día del Señor!")
-    }
-    val pendingIntent = PendingIntent.getBroadcast(context, 1, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+    val pendingIntent = createPendingIntent(context, "Recuerda Alistarte para el día del Señor!", 1)
 
     val calendar = Calendar.getInstance().apply {
         timeInMillis = System.currentTimeMillis()
+        set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY)
         set(Calendar.HOUR_OF_DAY, 7)
         set(Calendar.MINUTE, 0)
         set(Calendar.SECOND, 0)
-        while (get(Calendar.DAY_OF_WEEK) != Calendar.SUNDAY) {
-            add(Calendar.DAY_OF_YEAR, 1)
+        if (timeInMillis <= System.currentTimeMillis()) {
+            add(Calendar.DAY_OF_YEAR, 7) // Si ya pasó el domingo actual, ajustar para la próxima semana
         }
     }
-    alarmManager.setInexactRepeating(
-        AlarmManager.RTC_WAKEUP,
-        calendar.timeInMillis,
-        AlarmManager.INTERVAL_DAY * 7,
-        pendingIntent
-    )
+
+    Log.d("AlarmManager", "Alarm set for: ${calendar.time}")
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        if (canScheduleExactAlarms(context)) {
+            alarmManager.setExact(
+                AlarmManager.RTC_WAKEUP,
+                calendar.timeInMillis,
+                pendingIntent
+            )
+            Log.d("AlarmManager", "Exact alarm scheduled")
+        } else {
+            alarmManager.setInexactRepeating(
+                AlarmManager.RTC_WAKEUP,
+                calendar.timeInMillis,
+                AlarmManager.INTERVAL_DAY * 7,
+                pendingIntent
+            )
+            Log.d("AlarmManager", "Inexact repeating alarm scheduled")
+        }
+    } else {
+        alarmManager.setInexactRepeating(
+            AlarmManager.RTC_WAKEUP,
+            calendar.timeInMillis,
+            AlarmManager.INTERVAL_DAY * 7,
+            pendingIntent
+        )
+        Log.d("AlarmManager", "Inexact repeating alarm scheduled")
+    }
 }
 
-fun scheduleNotifications(context: Context, ardeReference: String) {
-    val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-
+private fun createPendingIntent(context: Context, ardeReference: String, requestCode: Int): PendingIntent {
     val notificationIntent = Intent(context, NotificationReceiver::class.java).apply {
         putExtra("ARDE_REFERENCE", ardeReference)
     }
-    val pendingIntent = PendingIntent.getBroadcast(context, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+    return PendingIntent.getBroadcast(context, requestCode, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+}
 
-    scheduleAlarm(alarmManager, pendingIntent, 6, 0)
-    scheduleAlarm(alarmManager, pendingIntent, 19, 0)
+@RequiresApi(Build.VERSION_CODES.S)
+fun scheduleNotifications(context: Context, ardeReference: String) {
+    Log.d("AlarmManager", "scheduleNotifications called with ardeReference: $ardeReference")
+    val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
+    scheduleNotification(context, alarmManager, ardeReference, 6, 0, 1)
+    scheduleNotification(context, alarmManager, ardeReference, 19, 0, 2)
+}
+
+private fun scheduleNotification(context: Context, alarmManager: AlarmManager, ardeReference: String, hour: Int, minute: Int, requestCode: Int) {
+    val notificationIntent = Intent(context, NotificationReceiver::class.java).apply {
+        putExtra("ARDE_REFERENCE", ardeReference)
+    }
+    val pendingIntent = PendingIntent.getBroadcast(context, requestCode, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        if (canScheduleExactAlarms(context)) {
+            scheduleAlarmExact(alarmManager, pendingIntent, hour, minute)
+        } else {
+            scheduleAlarm(alarmManager, pendingIntent, hour, minute)
+        }
+    } else {
+        scheduleAlarm(alarmManager, pendingIntent, hour, minute)
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.S)
+private fun canScheduleExactAlarms(context: Context): Boolean {
+    val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    val canSchedule = try {
+        alarmManager.canScheduleExactAlarms()
+    } catch (e: SecurityException) {
+        false
+    }
+    Log.d("AlarmManager", "canScheduleExactAlarms: $canSchedule")
+    return canSchedule
 }
 
 private fun scheduleAlarm(alarmManager: AlarmManager, pendingIntent: PendingIntent, hour: Int, minute: Int) {
+    Log.d("AlarmManager", "scheduleAlarm called for time: $hour:$minute")
     val calendar = Calendar.getInstance().apply {
         timeInMillis = System.currentTimeMillis()
         set(Calendar.HOUR_OF_DAY, hour)
         set(Calendar.MINUTE, minute)
         set(Calendar.SECOND, 0)
+        if (timeInMillis <= System.currentTimeMillis()) {
+            add(Calendar.DAY_OF_YEAR, 1) // Asegurar que sea para el siguiente día si la hora ya pasó hoy
+        }
     }
     alarmManager.setInexactRepeating(
         AlarmManager.RTC_WAKEUP,
@@ -107,11 +206,24 @@ private fun scheduleAlarm(alarmManager: AlarmManager, pendingIntent: PendingInte
         AlarmManager.INTERVAL_DAY,
         pendingIntent
     )
+    Log.d("AlarmManager", "Alarm scheduled for: ${calendar.time}")
 }
 
-class NotificationReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent) {
-        val ardeReference = intent.getStringExtra("ARDE_REFERENCE") ?: return
-        LocalNotificationService(context).showNotification("A.R.D.E.", ardeReference)
+private fun scheduleAlarmExact(alarmManager: AlarmManager, pendingIntent: PendingIntent, hour: Int, minute: Int) {
+    Log.d("AlarmManager", "scheduleAlarmExact called for time: $hour:$minute")
+    val calendar = Calendar.getInstance().apply {
+        timeInMillis = System.currentTimeMillis()
+        set(Calendar.HOUR_OF_DAY, hour)
+        set(Calendar.MINUTE, minute)
+        set(Calendar.SECOND, 0)
+        if (timeInMillis <= System.currentTimeMillis()) {
+            add(Calendar.DAY_OF_YEAR, 1) // Asegurar que sea para el siguiente día si la hora ya pasó hoy
+        }
     }
+    alarmManager.setExact(
+        AlarmManager.RTC_WAKEUP,
+        calendar.timeInMillis,
+        pendingIntent
+    )
+    Log.d("AlarmManager", "Exact alarm scheduled for: ${calendar.time}")
 }

@@ -83,3 +83,4 @@ suspend fun checkForUpdate(currentVersion: String): String? = withContext(Dispat
     }
     return@withContext null
 }
+

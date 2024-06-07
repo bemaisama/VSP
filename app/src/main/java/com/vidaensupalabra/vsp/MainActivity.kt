@@ -8,18 +8,23 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.net.http.SslError
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.util.Log
+import android.view.View
+import android.view.ViewGroup
 import android.webkit.SslErrorHandler
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.Button
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
@@ -48,6 +53,8 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -86,7 +93,6 @@ import com.vidaensupalabra.vsp.ventanas.InformationScreen
 import com.vidaensupalabra.vsp.ventanas.Mas
 import com.vidaensupalabra.vsp.ventanas.MusicaScreen
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -94,9 +100,7 @@ import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
 
-
 class SecureWebViewActivity : AppCompatActivity() {
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val webView = WebView(this)
@@ -114,16 +118,6 @@ class SecureWebViewActivity : AppCompatActivity() {
 }
 
 
-class BootReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
-            GlobalScope.launch {
-                val ardeReference = getCurrentArdeReference(context)
-                scheduleNotifications(context, ardeReference)
-            }
-        }
-    }
-}
 @SuppressLint("MissingFirebaseInstanceTokenRefresh")
 class MyFirebaseMessagingService : FirebaseMessagingService() {
     @SuppressLint("MissingPermission")
@@ -149,7 +143,6 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     }
 }
 
-
 // Entidades y acceso a datos (Room)
 @Entity(tableName = "arde_data")
 data class ArdeEntity(
@@ -159,7 +152,6 @@ data class ArdeEntity(
     val day: Int,
     val reference: String,
     val devocional: String // Nueva variable añadida
-
 )
 
 // Define el DAO para acceder a tu base de datos.
@@ -179,7 +171,6 @@ interface ArdeDao {
 
     @Update
     suspend fun updateArde(arde: ArdeEntity)
-
 }
 
 // Define la base de datos Room.
@@ -206,13 +197,13 @@ abstract class AppDatabase : RoomDatabase() {
         }
     }
 }
+
 // ViewModels
 class ArdeViewModel(application: Application) : AndroidViewModel(application) {
-    private val db: AppDatabase = Room.databaseBuilder(application, AppDatabase::class.java, "arde_database")
-        .fallbackToDestructiveMigration()
-        .build()
+    private val db: AppDatabase = AppDatabase.getInstance(application.applicationContext)
 
     val currentArde: MutableLiveData<ArdeEntity?> = MutableLiveData(null)
+    val dataLoaded: MutableLiveData<Boolean> = MutableLiveData(false)
     val navigationEvent = MutableSharedFlow<String>()
 
     init {
@@ -221,7 +212,7 @@ class ArdeViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun checkAndLoadData() {
         viewModelScope.launch(Dispatchers.IO) {
-            val count = db.ardeDao().count() // Esta operación ya está en un contexto seguro gracias a Dispatchers.IO
+            val count = db.ardeDao().count()
             if (count == 0) {
                 val ardeList = loadArdeDataFromCsv(getApplication<Application>().applicationContext)
                 if (ardeList.isNotEmpty()) {
@@ -233,15 +224,14 @@ class ArdeViewModel(application: Application) : AndroidViewModel(application) {
             } else {
                 Log.d("ArdeViewModel", "Database already contains data. No need to load from CSV.")
             }
+            dataLoaded.postValue(true)
         }
     }
 
     // Función para cargar datos de ARDE basados en la fecha seleccionada.
     fun loadArdeDataForSelectedDate(year: Int, month: Int, day: Int) {
         viewModelScope.launch(Dispatchers.IO) {
-            val ardeData = withContext(Dispatchers.IO) {
-                db.ardeDao().findByDate(year, month, day).firstOrNull()
-            }
+            val ardeData = db.ardeDao().findByDate(year, month, day).firstOrNull()
             currentArde.postValue(ardeData)
             if (ardeData != null) {
                 navigationEvent.emit("arde_detail/${ardeData.year}/${ardeData.month}/${ardeData.day}")
@@ -255,32 +245,27 @@ class ArdeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    init {
-        checkAndLoadData()
-    }
-
-    private suspend fun loadArdeDataFromCsv(context: Context): List<ArdeEntity> = withContext(Dispatchers.IO) {
-        val ardeList = mutableListOf<ArdeEntity>()
-        context.assets.open("Datos_Arde.csv").use { inputStream ->
-            BufferedReader(InputStreamReader(inputStream)).use { reader ->
-                var line: String?
-                while (reader.readLine().also { line = it } != null) {
-                    val tokens = line!!.split(",")
-                    if (tokens.size >= 4) { // Asegura que hay al menos 4 tokens por línea
-                        val year = tokens[0].toInt()
-                        val month = tokens[1].toInt()
-                        val day = tokens[2].toInt()
-                        val reference = tokens[3]
-                        val devocional = "" // Inicializa el campo devocional con una cadena vacía
-                        ardeList.add(ArdeEntity(year = year, month = month, day = day, reference = reference, devocional = devocional))
+    private suspend fun loadArdeDataFromCsv(context: Context): List<ArdeEntity> =
+        withContext(Dispatchers.IO) {
+            val ardeList = mutableListOf<ArdeEntity>()
+            context.assets.open("Datos_Arde.csv").use { inputStream ->
+                BufferedReader(InputStreamReader(inputStream)).use { reader ->
+                    var line: String?
+                    while (reader.readLine().also { line = it } != null) {
+                        val tokens = line!!.split(",")
+                        if (tokens.size >= 4) { // Asegura que hay al menos 4 tokens por línea
+                            val year = tokens[0].toInt()
+                            val month = tokens[1].toInt()
+                            val day = tokens[2].toInt()
+                            val reference = tokens[3]
+                            val devocional = "" // Inicializa el campo devocional con una cadena vacía
+                            ardeList.add(ArdeEntity(year = year, month = month, day = day, reference = reference, devocional = devocional))
+                        }
                     }
                 }
             }
+            return@withContext ardeList
         }
-        return@withContext ardeList
-    }
-    // Método para limpiar el estado de currentArde
-
 }
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -315,7 +300,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     if (anuncio != null) {
                         anuncios.add(anuncio)
                         Log.d(TAG, "Announcement added: ${anuncio.youtubevideo}")
-
                     }
                 }
             }
@@ -346,33 +330,45 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 }
 
-
 // ComponentActivity y Composables
 @RequiresApi(Build.VERSION_CODES.O)
 class MainActivity : ComponentActivity() {
+    private lateinit var developerOptionsButton: Button
+    private var handler = Handler(Looper.getMainLooper())
+    private var isHeldDown = false
+    private lateinit var ardeViewModel: ArdeViewModel
 
+    @RequiresApi(Build.VERSION_CODES.S)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         // Solicitar permisos en tiempo de ejecución
         requestStoragePermissions()
+        initializeDatabase()
 
         // Crear canal de notificación
         createNotificationChannel()
 
         setContent {
             VSPTheme {
-                MainScreen()
+                MainScreen(mainActivity = this)
             }
         }
+        Log.d("MainActivity", "onCreate called")
 
-        // Programar notificaciones semanales
-        scheduleWeeklyNotification(this)
 
-        lifecycleScope.launch {
-            val ardeReference = getCurrentArdeReference(this@MainActivity)
-            scheduleNotifications(this@MainActivity, ardeReference)
-        }
+        ardeViewModel = ViewModelProvider(this).get(ArdeViewModel::class.java)
+
+        ardeViewModel.dataLoaded.observe(this, Observer { dataLoaded ->
+            if (dataLoaded) {
+                lifecycleScope.launch {
+                    val ardeReference = getCurrentArdeReference(this@MainActivity)
+                    Log.d("MainActivity", "Notifications scheduled for ARDE_REFERENCE: $ardeReference")
+                    scheduleNotifications(this@MainActivity, ardeReference)
+                    scheduleWeeklyNotification(this@MainActivity)
+                }
+            }
+        })
 
         // Verificar actualizaciones
         lifecycleScope.launch {
@@ -386,16 +382,34 @@ class MainActivity : ComponentActivity() {
                 Log.i("MainActivity", "No updates available.")
             }
         }
+
+        // Botón para abrir el diálogo flotante de desarrollador
+        developerOptionsButton = Button(this).apply {
+            text = "Opciones de Desarrollador"
+            isEnabled = false // Inicialmente desactivado
+            visibility = View.GONE // Inicialmente oculto
+            setOnClickListener {
+                startActivity(Intent(this@MainActivity, DeveloperOptionsActivity::class.java))
+            }
+        }
+        addContentView(developerOptionsButton, ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+    }
+
+    private fun initializeDatabase() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val db = AppDatabase.getInstance(applicationContext)
+            Log.d("MainActivity", "Database initialized: $db")
+        }
     }
 
     private fun requestStoragePermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            requestPermissions(
-                arrayOf(
-                    Manifest.permission.READ_EXTERNAL_STORAGE,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE
-                ), 1
-            )
+            requestPermissions(arrayOf(
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                Manifest.permission.REQUEST_INSTALL_PACKAGES
+            ), 1)
+            Log.d("MainActivity", "Storage permissions requested")
         }
     }
 
@@ -415,6 +429,7 @@ class MainActivity : ComponentActivity() {
         }
         builder.setNegativeButton("Más tarde", null)
         builder.show()
+        Log.d("MainActivity", "Update dialog shown")
     }
 
     private fun createNotificationChannel() {
@@ -428,8 +443,10 @@ class MainActivity : ComponentActivity() {
             val notificationManager: NotificationManager =
                 getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
+            Log.d("MainActivity", "Notification channel created")
         }
     }
+
 
     private fun installApk(apkPath: String) {
         val apkFile = File(apkPath)
@@ -495,11 +512,29 @@ class MainActivity : ComponentActivity() {
             startInstallIntent(intent)
         }
     }
+
+    // Métodos para manejar el evento de mantener presionado
+    fun handleLongPressStart() {
+        isHeldDown = true
+        handler.postDelayed({
+            if (isHeldDown) {
+                developerOptionsButton.isEnabled = true
+                developerOptionsButton.visibility = View.VISIBLE // Mostrar el botón
+                Toast.makeText(this, "Opciones de Desarrollador activadas", Toast.LENGTH_SHORT).show()
+            }
+        }, 10000) // 10 segundos
+    }
+
+    fun handleLongPressEnd() {
+        isHeldDown = false
+        handler.removeCallbacksAndMessages(null)
+    }
 }
+
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun MainScreen() {
+fun MainScreen(mainActivity: MainActivity) {
     val navController = rememberNavController()
 
     Scaffold(
@@ -512,7 +547,7 @@ fun MainScreen() {
             // Usamos el valor hexadecimal para el color de fondo
             color = VspBase // Cambiamos aquí el color del fondo
         ) {
-            NavigationGraph(navController = navController)
+            NavigationGraph(navController = navController, mainActivity = mainActivity)
         }
     }
 }
@@ -567,7 +602,6 @@ fun BottomNavigationBar(navController: NavHostController) {
     }
 }
 
-
 // Enum para definir las pantallas, asegúrate de que estas rutas coincidan con las definidas en NavigationItem
 enum class Screens(val route: String) {
     Home("home"),
@@ -577,21 +611,19 @@ enum class Screens(val route: String) {
     Mas("mas"),
     Donacion("donacion"),
     Multimedia("multimedia"),
-
-
 }
 
 // NavigationGraph
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun NavigationGraph(navController: NavHostController) {
+fun NavigationGraph(navController: NavHostController, mainActivity: MainActivity) {
     val mainViewModel: MainViewModel = viewModel() // Asegúrate de obtener la instancia del ViewModel aquí
     NavHost(navController = navController, startDestination = Screens.Home.route) {
         composable(Screens.Home.route) { HomeScreen() }
         composable(Screens.ARDE.route) { ARDEScreen(navController = navController) }
         composable(Screens.Musica.route) { MusicaScreen(viewModel = mainViewModel) }
         composable(Screens.Information.route) { InformationScreen() }
-        composable(Screens.Mas.route) { Mas(navController = navController) }
+        composable(Screens.Mas.route) { Mas(navController = navController, mainActivity = mainActivity) }
         composable("arde_detail/{year}/{month}/{day}") { backStackEntry ->
             val year = backStackEntry.arguments?.getString("year")?.toInt() ?: 0
             val month = backStackEntry.arguments?.getString("month")?.toInt() ?: 0
@@ -614,14 +646,10 @@ fun NavigationGraph(navController: NavHostController) {
                 }
             )
         }
-        composable(Screens.Donacion.route){ DonacionScreen() }
-        composable(Screens.Multimedia.route){ MultimediaScreen() }
-
+        composable(Screens.Donacion.route) { DonacionScreen() }
+        composable(Screens.Multimedia.route) { MultimediaScreen() }
     }
 }
-
-
-
 
 // Modelos de datos y Enums
 
@@ -646,7 +674,7 @@ data class Cancion(
     val titulo3: String = "",
     val artista3: String = "",
     val letra3: String = "",
-    val youtubevideo1:String = "",
-    val youtubevideo2:String = "",
-    val youtubevideo3:String = "",
-    )
+    val youtubevideo1: String = "",
+    val youtubevideo2: String = "",
+    val youtubevideo3: String = "",
+)
