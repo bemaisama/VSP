@@ -47,10 +47,16 @@ class NotificationListener : NotificationListenerService() {
 class NotificationReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         Log.d("NotificationReceiver", "onReceive called")
-        val ardeReference = intent.getStringExtra("ARDE_REFERENCE") ?: "No ARDE reference found"
-        val message = intent.getStringExtra("MESSAGE") ?: ardeReference
-        val showBanner = intent.getBooleanExtra("SHOW_BANNER", false)
-        showNotification(context, "ARDE", message, showBanner)
+
+        // Verifica si la intención contiene la clave específica que esperas
+        if (intent.hasExtra("ARDE_REFERENCE")) {
+            val ardeReference = intent.getStringExtra("ARDE_REFERENCE") ?: "No ARDE reference found"
+            val message = intent.getStringExtra("MESSAGE") ?: ardeReference
+            val showBanner = intent.getBooleanExtra("SHOW_BANNER", false)
+            showNotification(context, "ARDE", message, showBanner)
+        } else {
+            Log.d("NotificationReceiver", "Received an unexpected intent: ${intent.action}")
+        }
     }
 
     private fun showNotification(context: Context, title: String, message: String, showBanner: Boolean) {
@@ -109,7 +115,7 @@ fun scheduleWeeklyNotification(context: Context) {
     Log.d("AlarmManager", "scheduleWeeklyNotification called")
     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-    val pendingIntent = createPendingIntent(context, "Recuerda Alistarte para el día del Señor!", 1, true)
+    val pendingIntent = createPendingIntent(context, "Recuerda Alistarte para el día del Señor!", 101, true)
 
     val calendar = Calendar.getInstance().apply {
         timeInMillis = System.currentTimeMillis()
@@ -156,6 +162,7 @@ private fun createPendingIntent(context: Context, message: String, requestCode: 
     val notificationIntent = Intent(context, NotificationReceiver::class.java).apply {
         putExtra("MESSAGE", message)
         putExtra("SHOW_BANNER", showBanner)
+        putExtra("ARDE_REFERENCE", "specific_reference") // Añade una referencia específica para validar
     }
     return PendingIntent.getBroadcast(context, requestCode, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 }
@@ -165,8 +172,8 @@ fun scheduleNotifications(context: Context, ardeReference: String) {
     Log.d("AlarmManager", "scheduleNotifications called with ardeReference: $ardeReference")
     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-    scheduleNotification(context, alarmManager, ardeReference, 6, 0, 1)
-    scheduleNotification(context, alarmManager, ardeReference, 19, 0, 2)
+    scheduleNotification(context, alarmManager, ardeReference, 6, 0, 102)
+    scheduleNotification(context, alarmManager, ardeReference, 19, 0, 103)
 }
 
 private fun scheduleNotification(context: Context, alarmManager: AlarmManager, ardeReference: String, hour: Int, minute: Int, requestCode: Int) {

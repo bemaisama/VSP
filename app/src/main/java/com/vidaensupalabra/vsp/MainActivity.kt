@@ -79,7 +79,6 @@ import com.google.firebase.messaging.RemoteMessage
 import com.vidaensupalabra.vsp.notificaciones.scheduleNotifications
 import com.vidaensupalabra.vsp.notificaciones.scheduleWeeklyNotification
 import com.vidaensupalabra.vsp.otros.checkForUpdate
-import com.vidaensupalabra.vsp.otros.downloadUpdate
 import com.vidaensupalabra.vsp.otros.getCurrentArdeReference
 import com.vidaensupalabra.vsp.ui.theme.VSPTheme
 import com.vidaensupalabra.vsp.ui.theme.VspBase
@@ -418,19 +417,17 @@ class MainActivity : ComponentActivity() {
         builder.setTitle("Nueva versión disponible")
         builder.setMessage("Hay una nueva versión disponible. ¿Deseas actualizar ahora?")
         builder.setPositiveButton("Actualizar") { _, _ ->
-            lifecycleScope.launch {
-                val success = downloadUpdate(updateUrl, downloadPath)
-                if (success) {
-                    installApk(downloadPath)
-                } else {
-                    Log.e("MainActivity", "Failed to download the update.")
-                }
+            val intent = Intent(this, DownloadActivity::class.java).apply {
+                putExtra("downloadUrl", updateUrl)
+                putExtra("outputPath", downloadPath)
             }
+            startActivity(intent)
         }
         builder.setNegativeButton("Más tarde", null)
         builder.show()
         Log.d("MainActivity", "Update dialog shown")
     }
+
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

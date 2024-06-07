@@ -9,7 +9,7 @@ import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
 
-suspend fun downloadUpdate(downloadUrl: String, outputPath: String): Boolean = withContext(Dispatchers.IO) {
+suspend fun downloadUpdate(downloadUrl: String, outputPath: String, onProgressUpdate: (Int) -> Unit): Boolean = withContext(Dispatchers.IO) {
     Log.d("DownloadUpdate", "Starting download from URL: $downloadUrl")
     val url = URL(downloadUrl)
     val connection = url.openConnection() as HttpURLConnection
@@ -20,14 +20,18 @@ suspend fun downloadUpdate(downloadUrl: String, outputPath: String): Boolean = w
         Log.d("DownloadUpdate", "Response Code: ${connection.responseCode}")
 
         if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+            val fileLength = connection.contentLength
             val inputStream: InputStream = connection.inputStream
             val outputStream = FileOutputStream(outputPath)
 
             val buffer = ByteArray(4096)
             var bytesRead: Int
+            var totalBytesRead = 0
 
             while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                totalBytesRead += bytesRead
                 outputStream.write(buffer, 0, bytesRead)
+                onProgressUpdate((totalBytesRead * 100 / fileLength))
             }
 
             outputStream.close()
