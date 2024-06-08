@@ -14,10 +14,11 @@ suspend fun getCurrentArdeReference(context: Context): String {
         Log.d("DATABASE_INIT", "Database initialized successfully.")
 
         val calendar = Calendar.getInstance()
-        val year = 3 // Cambia esto al año actual o el año correcto
+        val year = 3 // Año fijo en la base de datos
         val month = calendar.get(Calendar.MONTH) + 1
         val day = calendar.get(Calendar.DAY_OF_MONTH)
 
+        Log.d("ARDE_REF", "Getting ARDE reference for date: Year: $year, Month: $month, Day: $day")
         val ardeEntity = db.ardeDao().findByDate(year, month, day).firstOrNull()
         val reference = ardeEntity?.reference ?: "No ARDE reference found"
         Log.d("ARDE_REF", "ARDE reference for date: Year: $year, Month: $month, Day: $day is: $reference")

@@ -1,6 +1,7 @@
 package com.vidaensupalabra.vsp
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
@@ -14,6 +15,7 @@ import androidx.core.app.ActivityCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.vidaensupalabra.vsp.notificaciones.NotificationReceiver
 import com.vidaensupalabra.vsp.otros.getCurrentArdeReference
 import com.vidaensupalabra.vsp.otros.printAllArdeData
 import kotlinx.coroutines.Dispatchers
@@ -53,6 +55,13 @@ class DeveloperOptionsActivity : ComponentActivity() {
     private fun sendTestNotification() {
         lifecycleScope.launch(Dispatchers.IO) {
             val ardeReference = getCurrentArdeReference(this@DeveloperOptionsActivity)
+            val intent = Intent(this@DeveloperOptionsActivity, NotificationReceiver::class.java).apply {
+                putExtra("ARDE_REFERENCE", ardeReference)
+                putExtra("MESSAGE", "Este es un mensaje de prueba para la referencia ARDE: $ardeReference")
+                putExtra("SHOW_BANNER", true)
+            }
+            sendBroadcast(intent)
+
             launch(Dispatchers.Main) {
                 Toast.makeText(this@DeveloperOptionsActivity, "Notificación enviada: $ardeReference", Toast.LENGTH_SHORT).show()
             }

@@ -361,7 +361,7 @@ class MainActivity : ComponentActivity() {
                 lifecycleScope.launch {
                     val ardeReference = getCurrentArdeReference(this@MainActivity)
                     Log.d("MainActivity", "Notifications scheduled for ARDE_REFERENCE: $ardeReference")
-                    scheduleNotifications(this@MainActivity, ardeReference)
+                    scheduleNotifications(this@MainActivity)
                     scheduleWeeklyNotification(this@MainActivity)
                 }
             }
