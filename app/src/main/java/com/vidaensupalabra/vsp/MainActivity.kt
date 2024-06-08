@@ -1,6 +1,5 @@
 package com.vidaensupalabra.vsp
 
-import DownloadActivity
 import MultimediaScreen
 import android.Manifest
 import android.annotation.SuppressLint
@@ -494,46 +493,46 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-    super.onActivityResult(requestCode, resultCode, data)
-    if (requestCode == 1234) {
-        if (resultCode == RESULT_OK) {
-            // Verifica si el permiso fue otorgado y vuelve a intentar la instalación
-            val downloadPath = "${filesDir}/update.apk"
-            val apkUri = FileProvider.getUriForFile(
-                this,
-                "${BuildConfig.APPLICATION_ID}.provider",
-                File(downloadPath)
-            )
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == 1234) {
+            if (resultCode == RESULT_OK) {
+                // Verifica si el permiso fue otorgado y vuelve a intentar la instalación
+                val downloadPath = "${filesDir}/update.apk"
+                val apkUri = FileProvider.getUriForFile(
+                    this,
+                    "${BuildConfig.APPLICATION_ID}.provider",
+                    File(downloadPath)
+                )
 
-            val intent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(apkUri, "application/vnd.android.package-archive")
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                val intent = Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(apkUri, "application/vnd.android.package-archive")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                try {
+                    startInstallIntent(intent)
+                } catch (e: Exception) {
+                    Log.e("MainActivity", "Error starting install activity after permission granted: ${e.message}")
+                    handleInstallationError("Error after permission: ${e.message}")
+                }
+            } else {
+                Log.e("MainActivity", "Permission for installing unknown apps not granted")
+                handleInstallationError("Permission not granted for installing unknown apps")
             }
-            try {
-                startInstallIntent(intent)
-            } catch (e: Exception) {
-                Log.e("MainActivity", "Error starting install activity after permission granted: ${e.message}")
-                handleInstallationError("Error after permission: ${e.message}")
-            }
-        } else {
-            Log.e("MainActivity", "Permission for installing unknown apps not granted")
-            handleInstallationError("Permission not granted for installing unknown apps")
-        }
-    } else if (requestCode == 1235 && resultCode == RESULT_OK) {
-        // Obtener el camino del APK descargado y proceder con la instalación
-        val outputPath = data?.getStringExtra("outputPath")
-        if (outputPath != null) {
-            try {
-                installApk(outputPath)
-            } catch (e: Exception) {
-                Log.e("MainActivity", "Error during APK installation: ${e.message}")
-                handleInstallationError("Error during installation: ${e.message}")
+        } else if (requestCode == 1235 && resultCode == RESULT_OK) {
+            // Obtener el camino del APK descargado y proceder con la instalación
+            val outputPath = data?.getStringExtra("outputPath")
+            if (outputPath != null) {
+                try {
+                    installApk(outputPath)
+                } catch (e: Exception) {
+                    Log.e("MainActivity", "Error during APK installation: ${e.message}")
+                    handleInstallationError("Error during installation: ${e.message}")
+                }
             }
         }
     }
-}
 
 
     // Métodos para manejar el evento de mantener presionado

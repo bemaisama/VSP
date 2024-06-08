@@ -76,6 +76,9 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+        <activity android:name=".DownloadActivity"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+        </activity>
 
     </application>
 </manifest>
