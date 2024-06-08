@@ -7,7 +7,6 @@
     <uses-permission android:name="android.permission.NOTIFICATION_POLICY_ACCESS_GRANTED" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <application
@@ -39,14 +38,21 @@
             android:theme="@style/Theme.VSP">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <activity android:name=".SecureWebViewActivity" />
+
         <activity
             android:name=".DeveloperOptionsActivity"
             android:theme="@style/Theme.AppCompat.DayNight.DarkActionBar" />
+
+        <activity
+            android:name=".DownloadActivity"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+            android:exported="true">
+        </activity>
 
         <service
             android:name=".MyFirebaseMessagingService"
@@ -55,6 +61,7 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
+
         <service
             android:name=".notificaciones.NotificationListener"
             android:exported="true"
@@ -76,9 +83,6 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
-        <activity android:name=".DownloadActivity"
-            android:theme="@style/Theme.AppCompat.Light.NoActionBar">
-        </activity>
 
     </application>
 </manifest>

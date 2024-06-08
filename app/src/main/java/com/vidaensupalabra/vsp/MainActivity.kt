@@ -410,21 +410,22 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun showUpdateDialog(updateUrl: String, downloadPath: String) {
-        val builder = AlertDialog.Builder(this)
-        builder.setTitle("Nueva versión disponible")
-        builder.setMessage("Hay una nueva versión disponible. ¿Deseas actualizar ahora?")
-        builder.setPositiveButton("Actualizar") { _, _ ->
-            val intent = Intent(this, DownloadActivity::class.java).apply {
-                putExtra("downloadUrl", updateUrl)
-                putExtra("outputPath", downloadPath)
-            }
-            startActivityForResult(intent, 1235)
+// Dentro de tu MainActivity
+private fun showUpdateDialog(updateUrl: String, downloadPath: String) {
+    val builder = AlertDialog.Builder(this)
+    builder.setTitle("Nueva versión disponible")
+    builder.setMessage("Hay una nueva versión disponible. ¿Deseas actualizar ahora?")
+    builder.setPositiveButton("Actualizar") { _, _ ->
+        val intent = Intent(this, DownloadActivity::class.java).apply {
+            putExtra("downloadUrl", updateUrl)
+            putExtra("outputPath", downloadPath)
         }
-        builder.setNegativeButton("Más tarde", null)
-        builder.show()
-        Log.d("MainActivity", "Update dialog shown")
+        startActivityForResult(intent, 1235)
     }
+    builder.setNegativeButton("Más tarde", null)
+    builder.show()
+    Log.d("MainActivity", "Update dialog shown")
+}
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

@@ -1,5 +1,6 @@
 package com.vidaensupalabra.vsp
 
+import android.app.ProgressDialog
 import android.content.Intent
 import android.os.Bundle
 import android.widget.ProgressBar
@@ -10,6 +11,7 @@ import kotlinx.coroutines.launch
 
 class DownloadActivity : AppCompatActivity() {
     private lateinit var progressBar: ProgressBar
+    private lateinit var progressDialog: ProgressDialog
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -17,15 +19,27 @@ class DownloadActivity : AppCompatActivity() {
 
         progressBar = findViewById(R.id.progressBar)
 
+        progressDialog = ProgressDialog(this).apply {
+            setTitle("Descargando actualización")
+            setMessage("Por favor espera...")
+            setProgressStyle(ProgressDialog.STYLE_HORIZONTAL)
+            isIndeterminate = false
+            setCancelable(false)
+            max = 100
+        }
+        progressDialog.show()
+
         val downloadUrl = intent.getStringExtra("downloadUrl") ?: return
         val outputPath = intent.getStringExtra("outputPath") ?: return
 
         lifecycleScope.launch {
             val success = downloadUpdate(downloadUrl, outputPath) { progress ->
                 runOnUiThread {
+                    progressDialog.progress = progress
                     progressBar.progress = progress
                 }
             }
+            progressDialog.dismiss()
             if (success) {
                 // Notify MainActivity to install the APK
                 val installIntent = Intent().apply {
