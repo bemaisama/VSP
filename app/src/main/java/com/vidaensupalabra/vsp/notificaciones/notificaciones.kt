@@ -187,11 +187,6 @@ fun scheduleNotifications(context: Context) {
         withContext(Dispatchers.Main) {
             scheduleNotification(context, alarmManager, 19, 0, 103)
         }
-        val ardeReferenceALL = getCurrentArdeReference(context)
-        Log.d("AlarmManager", "Retrieved ardeReference for ALL: $ardeReferenceALL")
-        withContext(Dispatchers.Main) {
-            scheduleNotification(context, alarmManager, hour, 58, 104)
-        }
     }
 }
 
