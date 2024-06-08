@@ -1,5 +1,6 @@
 package com.vidaensupalabra.vsp
 
+import DownloadActivity
 import MultimediaScreen
 import android.Manifest
 import android.annotation.SuppressLint
@@ -10,13 +11,11 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.net.http.SslError
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.provider.Settings
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
@@ -421,13 +420,12 @@ class MainActivity : ComponentActivity() {
                 putExtra("downloadUrl", updateUrl)
                 putExtra("outputPath", downloadPath)
             }
-            startActivity(intent)
+            startActivityForResult(intent, 1235)
         }
         builder.setNegativeButton("Más tarde", null)
         builder.show()
         Log.d("MainActivity", "Update dialog shown")
     }
-
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -443,7 +441,6 @@ class MainActivity : ComponentActivity() {
             Log.d("MainActivity", "Notification channel created")
         }
     }
-
 
     private fun installApk(apkPath: String) {
         val apkFile = File(apkPath)
@@ -466,19 +463,26 @@ class MainActivity : ComponentActivity() {
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            if (!packageManager.canRequestPackageInstalls()) {
-                startActivityForResult(
-                    Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).setData(
-                        Uri.parse("package:$packageName")
-                    ), 1234
-                )
-            } else {
-                startInstallIntent(intent)
-            }
-        } else {
-            startInstallIntent(intent)
+        try {
+            startActivity(intent)
+        } catch (e: SecurityException) {
+            Log.e("MainActivity", "SecurityException during installation: ${e.message}")
+            e.printStackTrace()
+            handleInstallationError("SecurityException: ${e.message}")
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Error starting install activity: ${e.message}")
+            e.printStackTrace()
+            handleInstallationError("Error: ${e.message}")
         }
+    }
+    private fun handleInstallationError(errorMessage: String) {
+        Log.e("MainActivity", "Installation failed: $errorMessage")
+        // Mostrar un mensaje de error al usuario
+        AlertDialog.Builder(this)
+            .setTitle("Error de instalación")
+            .setMessage("La instalación de la nueva versión falló: $errorMessage")
+            .setPositiveButton("OK", null)
+            .show()
     }
 
     private fun startInstallIntent(intent: Intent) {
@@ -490,9 +494,10 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == 1234) {
+override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+    super.onActivityResult(requestCode, resultCode, data)
+    if (requestCode == 1234) {
+        if (resultCode == RESULT_OK) {
             // Verifica si el permiso fue otorgado y vuelve a intentar la instalación
             val downloadPath = "${filesDir}/update.apk"
             val apkUri = FileProvider.getUriForFile(
@@ -506,9 +511,30 @@ class MainActivity : ComponentActivity() {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-            startInstallIntent(intent)
+            try {
+                startInstallIntent(intent)
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Error starting install activity after permission granted: ${e.message}")
+                handleInstallationError("Error after permission: ${e.message}")
+            }
+        } else {
+            Log.e("MainActivity", "Permission for installing unknown apps not granted")
+            handleInstallationError("Permission not granted for installing unknown apps")
+        }
+    } else if (requestCode == 1235 && resultCode == RESULT_OK) {
+        // Obtener el camino del APK descargado y proceder con la instalación
+        val outputPath = data?.getStringExtra("outputPath")
+        if (outputPath != null) {
+            try {
+                installApk(outputPath)
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Error during APK installation: ${e.message}")
+                handleInstallationError("Error during installation: ${e.message}")
+            }
         }
     }
+}
+
 
     // Métodos para manejar el evento de mantener presionado
     fun handleLongPressStart() {

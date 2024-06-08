@@ -1,9 +1,9 @@
-package com.vidaensupalabra.vsp
-
+import android.content.Intent
 import android.os.Bundle
 import android.widget.ProgressBar
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.vidaensupalabra.vsp.R
 import com.vidaensupalabra.vsp.otros.downloadUpdate
 import kotlinx.coroutines.launch
 
@@ -26,9 +26,16 @@ class DownloadActivity : AppCompatActivity() {
                 }
             }
             if (success) {
-                // Handle success (e.g., start installation)
+                // Notify MainActivity to install the APK
+                val installIntent = Intent().apply {
+                    putExtra("outputPath", outputPath)
+                }
+                setResult(RESULT_OK, installIntent)
+                finish()
             } else {
                 // Handle failure
+                setResult(RESULT_CANCELED)
+                finish()
             }
         }
     }
