@@ -1,3 +1,5 @@
+// ArdeScreen.kt
+
 package com.vidaensupalabra.vsp.ventanas
 
 //noinspection UsingMaterialAndMaterial3Libraries
@@ -167,5 +169,6 @@ fun showDatePickerDialogForArde(context: Context, planYear: Int, onDateSelected:
         onDateSelected(planYear, month + 1, dayOfMonth)
     }, Calendar.getInstance().get(Calendar.YEAR), Calendar.getInstance().get(Calendar.MONTH), Calendar.getInstance().get(Calendar.DAY_OF_MONTH)).show()
 }
+
 
 

@@ -1,3 +1,5 @@
+// MainActivity.kt
+
 package com.vidaensupalabra.vsp
 
 import MultimediaScreen
@@ -494,6 +496,7 @@ private fun showUpdateDialog(updateUrl: String, downloadPath: String) {
         }
     }
 
+    @Deprecated("This method has been deprecated in favor of using the Activity Result API\n      which brings increased type safety via an {@link ActivityResultContract} and the prebuilt\n      contracts for common intents available in\n      {@link androidx.activity.result.contract.ActivityResultContracts}, provides hooks for\n      testing, and allow receiving results in separate, testable classes independent from your\n      activity. Use\n      {@link #registerForActivityResult(ActivityResultContract, ActivityResultCallback)}\n      with the appropriate {@link ActivityResultContract} and handling the result in the\n      {@link ActivityResultCallback#onActivityResult(Object) callback}.")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == 1234) {
@@ -688,16 +691,11 @@ data class ImportantAnnouncement(
     val youtubevideo: String = "",
 )
 data class Cancion(
-    val titulo1: String = "",
-    val artista1: String = "",
     val letra1: String = "",
-    val titulo2: String = "",
-    val artista2: String = "",
     val letra2: String = "",
-    val titulo3: String = "",
-    val artista3: String = "",
     val letra3: String = "",
     val youtubevideo1: String = "",
     val youtubevideo2: String = "",
     val youtubevideo3: String = "",
 )
+

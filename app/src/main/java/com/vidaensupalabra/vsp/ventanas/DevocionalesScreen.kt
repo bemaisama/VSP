@@ -1,3 +1,5 @@
+// DevocionalesScreen.kt
+
 package com.vidaensupalabra.vsp.ventanas
 
 //noinspection UsingMaterialAndMaterial3Libraries
@@ -310,3 +312,4 @@ fun convertReferenceToAbbreviation(reference: String): String {
     val abbreviation = bookNameToAbbreviationMap[bookName.trim()] ?: return ""
     return "$abbreviation.$chapter"
 }
+

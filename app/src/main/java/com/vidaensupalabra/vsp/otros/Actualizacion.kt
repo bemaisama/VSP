@@ -1,3 +1,5 @@
+// Actualizacion.kt
+
 package com.vidaensupalabra.vsp.otros
 
 import android.util.Log
@@ -87,4 +89,5 @@ suspend fun checkForUpdate(currentVersion: String): String? = withContext(Dispat
     }
     return@withContext null
 }
+
 

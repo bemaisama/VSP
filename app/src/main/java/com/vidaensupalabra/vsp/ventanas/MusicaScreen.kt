@@ -1,18 +1,22 @@
 package com.vidaensupalabra.vsp.ventanas
 
-//noinspection UsingMaterialAndMaterial3Libraries
-//noinspection UsingMaterialAndMaterial3Libraries
-//noinspection UsingMaterialAndMaterial3Libraries
-import android.util.Log
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.material.Button
+import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Card
+import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
@@ -20,32 +24,52 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.vidaensupalabra.vsp.MainViewModel
+import com.vidaensupalabra.vsp.R
 import com.vidaensupalabra.vsp.otros.YouTubeVideoView
+import com.vidaensupalabra.vsp.otros.fetchTextFromUrl
 import com.vidaensupalabra.vsp.ui.theme.VspBase
 import com.vidaensupalabra.vsp.ui.theme.VspMarco
 import com.vidaensupalabra.vsp.ui.theme.White
+import kotlinx.coroutines.launch
+import org.jsoup.Jsoup
+import org.jsoup.nodes.Element
 
 @Composable
-fun MusicaScreen(viewModel: MainViewModel) {
-    val canciones = viewModel.canciones.observeAsState(initial = listOf())
+fun MusicaScreen(viewModel: MainViewModel = viewModel()) {
+    val canciones by viewModel.canciones.observeAsState(initial = listOf())
+    val isPlaying = rememberSaveable(saver = SnapshotStateMapSaver<String, Boolean>()) { mutableStateMapOf<String, Boolean>() }
+    val currentTime = rememberSaveable(saver = SnapshotStateMapSaver<String, Float>()) { mutableStateMapOf<String, Float>() }
 
     LazyColumn(modifier = Modifier.padding(16.dp)) {
         item {
@@ -56,112 +80,204 @@ fun MusicaScreen(viewModel: MainViewModel) {
             )
             Spacer(modifier = Modifier.height(8.dp))
         }
-        canciones.value.forEach { cancion ->
+        canciones.forEach { cancion ->
             item {
-                CancionCard(
-                    titulo = cancion.titulo1,
-                    artista = cancion.artista1,
-                    letra = cancion.letra1
-                )
+                CancionCard(letraUrl = cancion.letra1, videoUrl = cancion.youtubevideo1, isPlaying = isPlaying, currentTime = currentTime)
             }
             item {
-                CancionCard(
-                    titulo = cancion.titulo2,
-                    artista = cancion.artista2,
-                    letra = cancion.letra2
-                )
+                CancionCard(letraUrl = cancion.letra2, videoUrl = cancion.youtubevideo2, isPlaying = isPlaying, currentTime = currentTime)
             }
             item {
-                CancionCard(
-                    titulo = cancion.titulo3,
-                    artista = cancion.artista3,
-                    letra = cancion.letra3
-                )
+                CancionCard(letraUrl = cancion.letra3, videoUrl = cancion.youtubevideo3, isPlaying = isPlaying, currentTime = currentTime)
             }
-        }
-
-        item {
-            Spacer(modifier = Modifier.height(16.dp))
-            VideosDomingo(viewModel)
         }
     }
 }
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun CancionCard(titulo: String, artista: String, letra: String) {
+fun CancionCard(letraUrl: String, videoUrl: String, isPlaying: MutableMap<String, Boolean>, currentTime: MutableMap<String, Float>) {
+    val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
     var isExpanded by rememberSaveable { mutableStateOf(false) }
+    var titulo by remember { mutableStateOf<String?>(null) }
+    var letra by remember { mutableStateOf<AnnotatedString?>(null) }
+    val videoId = extractoVideosDomingo(videoUrl) ?: ""
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        backgroundColor = VspBase,
-        elevation = 4.dp,
-        onClick = { isExpanded = !isExpanded }
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    titulo,
-                    style = MaterialTheme.typography.headlineSmall.copy(color = VspMarco),
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.weight(1f))
-                Icon(
-                    imageVector = if (isExpanded) Icons.Filled.ArrowDropDown else Icons.Filled.Add,
-                    contentDescription = if (isExpanded) "Collapse" else "Expand",
-                    tint = White,
-                    modifier = Modifier.size(24.dp)
-                )
+    // Estado de la Snackbar
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(letraUrl) {
+        if (letraUrl.isNotEmpty() && (letraUrl.startsWith("http://") || letraUrl.startsWith("https://"))) {
+            fetchTextFromUrl(context, letraUrl) { fetchedTitulo, fetchedLetra ->
+                titulo = fetchedTitulo ?: "Sin título"
+                letra = fetchedLetra?.let { htmlText ->
+                    convertHtmlToAnnotatedString(htmlText)
+                } ?: AnnotatedString("Contenido no disponible")
             }
-            if (isExpanded) {
-                Text(
-                    "Artista: $artista",
-                    style = MaterialTheme.typography.bodyLarge.copy(color = White),
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                TextoConformato(letra)
+        } else {
+            titulo = "No Disponible"
+            letra = AnnotatedString("No Disponible")
+        }
+    }
+
+    Box(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            backgroundColor = VspBase,
+            elevation = 4.dp,
+            onClick = { isExpanded = !isExpanded }
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = titulo ?: "Cargando...",
+                        style = MaterialTheme.typography.headlineSmall.copy(color = VspMarco),
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                    Icon(
+                        imageVector = if (isExpanded) Icons.Filled.ArrowDropDown else Icons.Filled.Add,
+                        contentDescription = if (isExpanded) "Collapse" else "Expand",
+                        tint = White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                if (isExpanded) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    if (letra != null) {
+                        SelectionContainer {
+                            Text(
+                                text = letra!!,
+                                color = White,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = {
+                                clipboardManager.setText(letra!!)
+                                coroutineScope.launch {
+                                    snackbarHostState.showSnackbar("Texto copiado al portapapeles")
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(backgroundColor = VspMarco)
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.baseline_content_copy_24),
+                                contentDescription = "Copiar",
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(text = "Copiar Todo", color = White)
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        SnackbarHost(hostState = snackbarHostState)
+                    } else {
+                        CircularProgressIndicator(color = White)
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    if (videoId.isNotEmpty()) {
+                        YouTubeVideoView(videoId = videoId, isPlaying = isPlaying, currentTime = currentTime)
+                    }
+                }
             }
         }
     }
 }
 
-@Composable
-fun TextoConformato(text: String) {
-    val processedText = text.replace("/n", "\n")
+fun convertHtmlToAnnotatedString(html: String): AnnotatedString {
+    val document = Jsoup.parse(html)
+    val body = document.body()
 
-    val styledText = buildAnnotatedString {
-        var startIndex: Int
-        var endIndex: Int
-        var currentIndex = 0
+    return buildAnnotatedString {
+        var isBold = false
+        for (element in body.children()) {
+            if (element.tagName() == "p") {
+                val text = element.text()
+                val parts = text.split("*")
 
-        while (currentIndex < processedText.length) {
-            startIndex = processedText.indexOf("*", currentIndex)
-            if (startIndex == -1) {
-                append(processedText.substring(currentIndex, processedText.length))
-                break
+                parts.forEachIndexed { index, part ->
+                    if (index % 2 == 1) {
+                        isBold = !isBold
+                    }
+                    if (isBold) {
+                        append(part)
+                    } else {
+                        withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                            append(part)
+                        }
+                    }
+                }
+                append("\n")
+            } else {
+                appendElement(element, isBold)
             }
-            endIndex = processedText.indexOf("*", startIndex + 1)
-            if (endIndex == -1) {
-                append(processedText.substring(currentIndex, processedText.length))
-                break
-            }
-
-            if (startIndex > currentIndex) {
-                append(processedText.substring(currentIndex, startIndex))
-            }
-
-            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, color = White)) {
-                append(processedText.substring(startIndex + 1, endIndex))
-            }
-
-            currentIndex = endIndex + 1
         }
     }
+}
 
-    Text(text = styledText, color = White, style = MaterialTheme.typography.bodyMedium)
+fun AnnotatedString.Builder.appendElement(element: Element, isBold: Boolean = false) {
+    val tagName = element.tagName()
+
+    when (tagName) {
+        "h1", "h2", "h3", "h4", "h5", "h6" -> {
+            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, fontSize = when (tagName) {
+                "h1" -> 26.sp
+                "h2" -> 22.sp
+                "h3" -> 18.sp
+                "h4" -> 16.sp
+                "h5" -> 14.sp
+                "h6" -> 12.sp
+                else -> 12.sp
+            })) {
+                append(element.text())
+                append("\n\n")
+            }
+        }
+        "p" -> {
+            val text = element.text()
+            val parts = text.split("*")
+
+            parts.forEachIndexed { index, part ->
+                if (index % 2 == 1) {
+                    withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                        append(part)
+                    }
+                } else {
+                    append(part)
+                }
+            }
+            append("\n")
+        }
+        "strong", "b" -> {
+            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                append(element.text())
+            }
+        }
+        "em", "i" -> {
+            withStyle(style = SpanStyle(fontStyle = FontStyle.Italic)) {
+                append(element.text())
+            }
+        }
+        "span" -> {
+            append(element.text())
+            element.children().forEach { child ->
+                appendElement(child, isBold)
+            }
+        }
+        else -> {
+            append(element.text())
+            element.children().forEach { child ->
+                appendElement(child, isBold)
+            }
+        }
+    }
 }
 
 fun extractoVideosDomingo(url: String): String? {
@@ -170,52 +286,13 @@ fun extractoVideosDomingo(url: String): String? {
     return matchResult?.groups?.get(3)?.value
 }
 
-@Composable
-fun VideosDomingo(viewModel: MainViewModel = viewModel()) {
-    val canciones = viewModel.canciones.observeAsState(initial = listOf())
-    val isPlaying = remember { mutableStateMapOf<String, Boolean>() }
-    val currentTime = remember { mutableStateMapOf<String, Float>() }
-
-    if (canciones.value.isNotEmpty()) {
-        val cancion = canciones.value[0]
-        val videoId1 = extractoVideosDomingo(cancion.youtubevideo1) ?: ""
-        val videoId2 = extractoVideosDomingo(cancion.youtubevideo2) ?: ""
-        val videoId3 = extractoVideosDomingo(cancion.youtubevideo3) ?: ""
-
-        isPlaying.putIfAbsent(videoId1, false)
-        isPlaying.putIfAbsent(videoId2, false)
-        isPlaying.putIfAbsent(videoId3, false)
-        currentTime.putIfAbsent(videoId1, 0f)
-        currentTime.putIfAbsent(videoId2, 0f)
-        currentTime.putIfAbsent(videoId3, 0f)
-
-        Log.d("VideosYoutubeMasVideos", "Loading YouTube video with ID: $videoId1")
-        Log.d("VideosYoutubeMasVideos", "Loading YouTube video with ID: $videoId2")
-        Log.d("VideosYoutubeMasVideos", "Loading YouTube video with ID: $videoId3")
-
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "Videos Domingo",
-                style = MaterialTheme.typography.headlineMedium,
-                color = White,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
-            )
-            if (videoId1.isNotEmpty()) {
-                YouTubeVideoView(videoId = videoId1, isPlaying, currentTime)
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            if (videoId2.isNotEmpty()) {
-                YouTubeVideoView(videoId = videoId2, isPlaying, currentTime)
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-
-            if (videoId3.isNotEmpty()) {
-                YouTubeVideoView(videoId = videoId3, isPlaying, currentTime)
+fun <K, V> SnapshotStateMapSaver(): Saver<SnapshotStateMap<K, V>, Any> {
+    return listSaver(
+        save = { map -> map.toList() },
+        restore = { list ->
+            SnapshotStateMap<K, V>().apply {
+                list.forEach { (k, v) -> this[k] = v }
             }
         }
-    }
+    )
 }

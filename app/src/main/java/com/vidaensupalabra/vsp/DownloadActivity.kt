@@ -1,3 +1,5 @@
+// DownloadActivity.kt
+
 package com.vidaensupalabra.vsp
 
 import android.app.ProgressDialog
@@ -55,3 +57,4 @@ class DownloadActivity : AppCompatActivity() {
         }
     }
 }
+

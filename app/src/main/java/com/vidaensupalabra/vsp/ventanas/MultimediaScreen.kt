@@ -1,3 +1,5 @@
+// MultimediaScreen.kt
+
 // Importaciones necesarias
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -141,3 +143,4 @@ fun ImagenFullScreenMultimedia(painter: Painter, onClose: () -> Unit) {
         )
     }
 }
+

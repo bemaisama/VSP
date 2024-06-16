@@ -1,3 +1,5 @@
+// Mas.kt
+
 package com.vidaensupalabra.vsp.ventanas
 
 //noinspection UsingMaterialAndMaterial3Libraries
@@ -130,3 +132,4 @@ fun Mas(navController: NavController, mainActivity: MainActivity) {
         }
     }
 }
+

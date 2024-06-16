@@ -1,3 +1,5 @@
+// notificaciones.kt
+
 package com.vidaensupalabra.vsp.notificaciones
 
 import android.app.AlarmManager
@@ -256,3 +258,4 @@ private fun scheduleAlarmExact(alarmManager: AlarmManager, pendingIntent: Pendin
     )
     Log.d("AlarmManager", "Exact alarm scheduled for: ${calendar.time}")
 }
+

@@ -1,3 +1,5 @@
+// Theme.kt
+
 package com.vidaensupalabra.vsp.ui.theme
 
 import android.app.Activity
@@ -141,3 +143,4 @@ fun VSPTheme(
         content = content
     )
 }
+

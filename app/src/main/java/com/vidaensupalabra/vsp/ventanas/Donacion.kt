@@ -1,3 +1,5 @@
+// Donacion.kt
+
 package com.vidaensupalabra.vsp.ventanas
 
 import androidx.compose.foundation.Image
@@ -12,6 +14,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.material.TopAppBar
@@ -34,6 +38,7 @@ import com.vidaensupalabra.vsp.ui.theme.White
 
 @Composable
 fun DonacionScreen() {
+    val scrollState = rememberScrollState()
     val cuentaAhorro = "526-805680-49"
     val nit = "901104161-3"
     val codigoSwift = "COLOCOBM"
@@ -47,7 +52,8 @@ fun DonacionScreen() {
                 elevation = 0.dp
             ) {
                 Box(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -62,7 +68,10 @@ fun DonacionScreen() {
         Column(
             modifier = Modifier
                 .padding(innerPadding)
-                .padding(16.dp),
+                .padding(16.dp)
+                .verticalScroll(scrollState),
+
+
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
@@ -89,7 +98,8 @@ fun BanColombia(cuentaAhorro: String, nit: String, codigoSwift: String) {
         Image(
             painter = painterResource(id = R.drawable.logobancolombia), // Reemplaza con el ID de recurso correcto
             contentDescription = "Logo de Bancolombia",
-            modifier = Modifier.height(150.dp)
+            modifier = Modifier
+                .height(150.dp)
                 .size(120.dp),
             // Ajusta según sea necesario
 
@@ -141,3 +151,4 @@ fun Textocorreo() {
         color = White
     )
 }
+

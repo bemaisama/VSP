@@ -14,8 +14,8 @@ android {
         applicationId = "com.vidaensupalabra.vsp"
         minSdk = 24
         targetSdk = 34
-        versionCode = 13
-        versionName = "1.4.7"
+        versionCode = 14
+        versionName = "1.4.9"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -49,6 +49,8 @@ android {
         }
     }
     buildToolsVersion = "34.0.0"
+
+
 }
 
 // Añadir Room Database y Compiler
@@ -100,5 +102,7 @@ dependencies {
     implementation ("androidx.work:work-runtime-ktx:2.9.0") // Asegúrate de usar la última versión
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     implementation("org.json:json:20210307")
+    implementation ("com.squareup.okhttp3:okhttp:4.9.3")
+    implementation ("org.jsoup:jsoup:1.13.1") // Asegúrate de usar la última versión disponible
 
 }

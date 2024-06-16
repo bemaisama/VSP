@@ -1,3 +1,5 @@
+// Color.kt
+
 package com.vidaensupalabra.vsp.ui.theme
 
 import androidx.compose.ui.graphics.Color
@@ -44,3 +46,4 @@ val Brown = Color(0xFF795548)
 val Grey = Color(0xFF9E9E9E)
 val BlueGrey = Color(0xFF607D8B)
 val Facebookcolor = Color(0xFF007aff)
+

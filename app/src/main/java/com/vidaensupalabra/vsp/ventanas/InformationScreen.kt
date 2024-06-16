@@ -1,3 +1,5 @@
+// InformationScreen.kt
+
 package com.vidaensupalabra.vsp.ventanas
 
 import android.content.Intent
@@ -415,3 +417,4 @@ fun ImagenFullScreen(painter: Painter) {
             }
     )
 }
+

@@ -1,3 +1,5 @@
+// Test_dialog.kt
+
 package com.vidaensupalabra.vsp
 
 import android.Manifest
@@ -125,3 +127,4 @@ class DeveloperOptionsAdapter(private val options: List<DeveloperOption>) :
 }
 
 data class DeveloperOption(val name: String, val action: () -> Unit)
+
