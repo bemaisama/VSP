@@ -1,6 +1,5 @@
 // MultimediaScreen.kt
 
-import android.content.Context
 import android.widget.ImageView
 import androidx.annotation.OptIn
 import androidx.compose.foundation.Image
@@ -51,8 +50,12 @@ import com.bumptech.glide.request.RequestOptions
 import com.vidaensupalabra.vsp.R
 import com.vidaensupalabra.vsp.ui.theme.VspBase
 import com.vidaensupalabra.vsp.ui.theme.White
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import java.net.HttpURLConnection
+import java.net.URL
 
 @Serializable
 data class MultimediaItem(
@@ -65,85 +68,123 @@ data class MultimediaItem(
 fun MultimediaScreen() {
     val context = LocalContext.current
     var multimediaItems by remember { mutableStateOf<List<MultimediaItem>>(emptyList()) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     // Cargar datos asincrónicamente
     LaunchedEffect(Unit) {
-        multimediaItems = loadMultimediaData(context, "multimedia.json")
+        try {
+            multimediaItems = loadMultimediaDataFromUrl("https://raw.githubusercontent.com/bemaisama/VSP/master/app/src/main/assets/multimedia.json")
+        } catch (e: Exception) {
+            errorMessage = e.message
+        }
     }
 
-    // Separar los elementos por tipo
-    val imageItems = multimediaItems.filter { it.mimeType.startsWith("image/") }
-    val videoItems = multimediaItems.filter { it.mimeType.startsWith("video/") }
-
-    // Control de pestañas
-    var selectedTabIndex by remember { mutableStateOf(0) }
-
-    Scaffold(
-        backgroundColor = VspBase,
-        topBar = {
-            TopAppBar(
-                modifier = Modifier.height(90.dp),
-                backgroundColor = Color.Transparent,
-                contentColor = Color.White,
-                elevation = 0.dp
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Multimedia",
-                        color = White,
-                        style = MaterialTheme.typography.headlineMedium
-                    )
-                }
-            }
-        }
-    ) { innerPadding ->
-        Column(
+    if (errorMessage != null) {
+        // Mostrar un mensaje de error en caso de fallo
+        Box(
             modifier = Modifier
-                .padding(innerPadding)
-                .padding(16.dp)
+                .fillMaxSize()
+                .background(Color.Red),
+            contentAlignment = Alignment.Center
         ) {
-            // Pestañas para cambiar entre imágenes y videos
-            TabRow(
-                selectedTabIndex = selectedTabIndex,
-                backgroundColor = VspBase,
-                contentColor = White
-            ) {
-                Tab(
-                    selected = selectedTabIndex == 0,
-                    onClick = { selectedTabIndex = 0 }
+            Text(
+                text = "Error: $errorMessage",
+                color = Color.White,
+                style = MaterialTheme.typography.bodyLarge
+            )
+        }
+    } else {
+        // Separar los elementos por tipo
+        val imageItems = multimediaItems.filter { it.mimeType.startsWith("image/") }
+        val videoItems = multimediaItems.filter { it.mimeType.startsWith("video/") }
+
+        // Control de pestañas
+        var selectedTabIndex by remember { mutableStateOf(0) }
+
+        Scaffold(
+            backgroundColor = VspBase,
+            topBar = {
+                TopAppBar(
+                    modifier = Modifier.height(90.dp),
+                    backgroundColor = Color.Transparent,
+                    contentColor = Color.White,
+                    elevation = 0.dp
                 ) {
-                    Text(
-                        text = "Imágenes",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(16.dp)
-                    )
-                }
-                Tab(
-                    selected = selectedTabIndex == 1,
-                    onClick = { selectedTabIndex = 1 }
-                ) {
-                    Text(
-                        text = "Videos",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(16.dp)
-                    )
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Multimedia",
+                            color = White,
+                            style = MaterialTheme.typography.headlineMedium
+                        )
+                    }
                 }
             }
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .padding(innerPadding)
+                    .padding(16.dp)
+            ) {
+                // Pestañas para cambiar entre imágenes y videos
+                TabRow(
+                    selectedTabIndex = selectedTabIndex,
+                    backgroundColor = VspBase,
+                    contentColor = White
+                ) {
+                    Tab(
+                        selected = selectedTabIndex == 0,
+                        onClick = { selectedTabIndex = 0 }
+                    ) {
+                        Text(
+                            text = "Imágenes",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
+                    Tab(
+                        selected = selectedTabIndex == 1,
+                        onClick = { selectedTabIndex = 1 }
+                    ) {
+                        Text(
+                            text = "Videos",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
+                }
 
-            // Contenido de la pestaña seleccionada
-            when (selectedTabIndex) {
-                0 -> GalleryScreen(imageItems) // Mostrar imágenes
-                1 -> GalleryScreen(videoItems) // Mostrar videos
+                // Contenido de la pestaña seleccionada
+                when (selectedTabIndex) {
+                    0 -> GalleryScreen(imageItems) // Mostrar imágenes
+                    1 -> GalleryScreen(videoItems) // Mostrar videos
+                }
             }
         }
     }
 }
-suspend fun loadMultimediaData(context: Context, fileName: String): List<MultimediaItem> {
-    val json = context.assets.open(fileName).bufferedReader().use { it.readText() }
-    return Json.decodeFromString(json)
+
+suspend fun loadMultimediaDataFromUrl(url: String): List<MultimediaItem> {
+    return withContext(Dispatchers.IO) {
+        try {
+            val connection = URL(url).openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.connectTimeout = 15000 // Tiempo de espera para conectar (15 segundos)
+            connection.readTimeout = 15000    // Tiempo de espera para leer datos (15 segundos)
+            connection.connect()
+
+            if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+                val json = connection.inputStream.bufferedReader().use { it.readText() }
+                Json.decodeFromString(json)
+            } else {
+                throw Exception("Error al cargar datos: Código de respuesta ${connection.responseCode}")
+            }
+        } catch (e: Exception) {
+            throw Exception("Error al cargar datos desde el URL", e)
+        }
+    }
 }
 
 @Composable
