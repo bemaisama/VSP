@@ -451,6 +451,7 @@ fun EquipoPastoral() {
                 }
             }
 
+/*
             ExpandibleContenidopastor(
                 iconResourceId = drawable.eduardocuadradoscaled,
                 title = "Eduardo Fergusson",
@@ -461,6 +462,7 @@ fun EquipoPastoral() {
                     expandedAndres = false
                 }
             }
+*/
         }
 
         if (expandedAndres) {
@@ -475,7 +477,7 @@ fun EquipoPastoral() {
             )
         }
 
-        if (expandedEduardo) {
+        /*if (expandedEduardo) {
             ExpandirContent(
                 title = "Eduardo Fergusson",
                 content = "Egresado del Seminario Reformado Latinoamericano, cursa una maestría en divinidades en el Covenant Baptist Theological Seminary. Pastor de ICVSP desde 2013 y Coordinador de traducciones para Coalición por el Evangelio. Casado con Etna Brito y padre de Emma e Ethan."
@@ -485,7 +487,7 @@ fun EquipoPastoral() {
                 "https://www.instagram.com/ejfergusson/",
                 "https://twitter.com/ejfergusson"
             )
-        }
+        }*/
     }
 }
 @Composable
@@ -616,7 +618,7 @@ fun Horarios(viewModel: MainViewModel = viewModel()){
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "8:30 AM & 10:30 AM",
+                    text = "9:30 AM",
                     style = MaterialTheme.typography.bodyMedium,
                     color = White,
                     textAlign = TextAlign.Center // Centra el texto dentro de su contenedor

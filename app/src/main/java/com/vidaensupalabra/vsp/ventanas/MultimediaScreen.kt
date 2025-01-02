@@ -1,8 +1,8 @@
-// MultimediaScreen.kt
+//MultimediaScreen.kt
+package com.vidaensupalabra.vsp.ventanas
 
-import android.content.Context
-import android.widget.ImageView
-import androidx.annotation.OptIn
+import android.app.Application
+import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -18,23 +18,29 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material.Scaffold
-import androidx.compose.material.Tab
-import androidx.compose.material.TabRow
-import androidx.compose.material.Text
-import androidx.compose.material.TopAppBar
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -45,160 +51,265 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.SimpleExoPlayer
 import androidx.media3.ui.PlayerView
-import coil.compose.rememberImagePainter
-import com.bumptech.glide.Glide
-import com.bumptech.glide.request.RequestOptions
+import coil.compose.AsyncImagePainter
+import coil.compose.rememberAsyncImagePainter
+import coil.request.CachePolicy
+import coil.request.ImageRequest
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.vidaensupalabra.vsp.R
+import com.vidaensupalabra.vsp.room.MultimediaItem
 import com.vidaensupalabra.vsp.ui.theme.VspBase
 import com.vidaensupalabra.vsp.ui.theme.White
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
+import com.vidaensupalabra.vsp.viewmodels.MultimediaViewModel
+import com.vidaensupalabra.vsp.viewmodels.MultimediaViewModelFactory
+import kotlinx.coroutines.launch
+import kotlin.math.max
 
-@Serializable
-data class MultimediaItem(
-    val name: String,
-    val url: String,
-    val mimeType: String
-)
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MultimediaScreen() {
-    val context = LocalContext.current
-    var multimediaItems by remember { mutableStateOf<List<MultimediaItem>>(emptyList()) }
+fun MultimediaScreen(
+    viewModel: MultimediaViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+        factory = MultimediaViewModelFactory(LocalContext.current.applicationContext as Application)
+    )
+) {
+    val multimediaItems by viewModel.multimediaFlow.collectAsState(initial = emptyList())
 
-    // Cargar datos asincrónicamente
-    LaunchedEffect(Unit) {
-        multimediaItems = loadMultimediaData(context, "multimedia.json")
-    }
-
-    // Separar los elementos por tipo
+    // Filtrar por imágenes o videos
     val imageItems = multimediaItems.filter { it.mimeType.startsWith("image/") }
     val videoItems = multimediaItems.filter { it.mimeType.startsWith("video/") }
 
-    // Control de pestañas
     var selectedTabIndex by remember { mutableStateOf(0) }
+    val currentList = if (selectedTabIndex == 0) imageItems else videoItems
+
+    // Agrupamos por YYYY-MM
+    val groupedByMonth = currentList.groupBy { item ->
+        item.date?.take(7) // "2024-12", por ejemplo
+    }
+
+    // Nuevo estado: si selectedMonth es null => vista de “carpetas”
+    // si no es null => vista de ítems de ese mes
+    var selectedMonth by remember { mutableStateOf<String?>(null) }
+
+    var isRefreshing by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     Scaffold(
-        backgroundColor = VspBase,
+        containerColor = VspBase,
         topBar = {
             TopAppBar(
                 modifier = Modifier.height(90.dp),
-                backgroundColor = Color.Transparent,
-                contentColor = Color.White,
-                elevation = 0.dp
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Multimedia",
-                        color = White,
-                        style = MaterialTheme.typography.headlineMedium
-                    )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                title = {
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (selectedMonth == null) "Multimedia" else "Mes: $selectedMonth",
+                            color = White,
+                            style = MaterialTheme.typography.headlineMedium
+                        )
+                    }
                 }
-            }
+            )
         }
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .padding(innerPadding)
                 .padding(16.dp)
+                .fillMaxSize()
         ) {
-            // Pestañas para cambiar entre imágenes y videos
+            // Tabs
             TabRow(
                 selectedTabIndex = selectedTabIndex,
-                backgroundColor = VspBase,
+                containerColor = VspBase,
                 contentColor = White
             ) {
                 Tab(
-                    selected = selectedTabIndex == 0,
-                    onClick = { selectedTabIndex = 0 }
-                ) {
-                    Text(
-                        text = "Imágenes",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(16.dp)
-                    )
-                }
+                    selected = (selectedTabIndex == 0),
+                    onClick = {
+                        selectedTabIndex = 0
+                        selectedMonth = null // Reinicia al cambiar de pestaña
+                    },
+                    text = { Text("Imágenes") }
+                )
                 Tab(
-                    selected = selectedTabIndex == 1,
-                    onClick = { selectedTabIndex = 1 }
-                ) {
-                    Text(
-                        text = "Videos",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(16.dp)
-                    )
-                }
+                    selected = (selectedTabIndex == 1),
+                    onClick = {
+                        selectedTabIndex = 1
+                        selectedMonth = null
+                    },
+                    text = { Text("Videos") }
+                )
             }
 
-            // Contenido de la pestaña seleccionada
-            when (selectedTabIndex) {
-                0 -> GalleryScreen(imageItems) // Mostrar imágenes
-                1 -> GalleryScreen(videoItems) // Mostrar videos
+            SwipeRefresh(
+                state = rememberSwipeRefreshState(isRefreshing),
+                onRefresh = {
+                    isRefreshing = true
+                    scope.launch {
+                        viewModel.refreshData()
+                        isRefreshing = false
+                        selectedMonth = null
+                    }
+                }
+            ) {
+                if (selectedMonth == null) {
+                    // Vista de “carpetas” (grupo por mes)
+                    MonthFoldersScreen(
+                        groupedByMonth = groupedByMonth,
+                        onMonthClick = { monthKey ->
+                            selectedMonth = monthKey
+                        }
+                    )
+                } else {
+                    // Vista de ítems del mes seleccionado
+                    val itemsOfMonth = groupedByMonth[selectedMonth].orEmpty()
+                    GalleryScreen(
+                        multimediaItems = itemsOfMonth,
+                        viewModel = viewModel,
+                        onBack = {
+                            // Botón "Atrás" (opcional)
+                            selectedMonth = null
+                        }
+                    )
+                }
             }
         }
     }
 }
-suspend fun loadMultimediaData(context: Context, fileName: String): List<MultimediaItem> {
-    val json = context.assets.open(fileName).bufferedReader().use { it.readText() }
-    return Json.decodeFromString(json)
-}
-
 @Composable
-fun GalleryScreen(multimediaItems: List<MultimediaItem>) {
-    var showDialog by remember { mutableStateOf(false) }
-    var currentItem by remember { mutableStateOf<MultimediaItem?>(null) }
+fun MonthFoldersScreen(
+    groupedByMonth: Map<String?, List<MultimediaItem>>,
+    onMonthClick: (String?) -> Unit
+) {
+    // Convertimos el map en una lista de pares (mes, listaDeItems)
+    val monthList = groupedByMonth.entries.sortedByDescending { it.key } // si quieres orden desc
+    // Ejemplo: [("2024-12", items...), ("2024-11", items...), ...]
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
-        contentPadding = PaddingValues(4.dp),
-        modifier = Modifier.padding(4.dp)
+        contentPadding = PaddingValues(4.dp)
     ) {
-        items(multimediaItems) { item ->
-            when {
-                item.mimeType.startsWith("image/") -> {
-                    Image(
-                        painter = rememberImagePainter(
-                            data = item.url,
-                            builder = {
-                                placeholder(R.drawable.placeholder)
-                                error(R.drawable.error_placeholder)
-                            }
-                        ),
-                        contentDescription = item.name,
-                        modifier = Modifier
-                            .size(100.dp)
-                            .clickable {
-                                currentItem = item
-                                showDialog = true
-                            }
-                            .padding(4.dp)
-                    )
+        items(monthList) { (monthKey, itemsInMonth) ->
+            // Extraemos un item cualquiera como preview (p.ej. el primero)
+            val previewItem = itemsInMonth.firstOrNull()
+            // Para mostrar un “folder card”
+            Box(
+                modifier = Modifier
+                    .size(120.dp)
+                    .padding(8.dp)
+                    .clickable {
+                        onMonthClick(monthKey) // Navegamos a la vista de ítems de este mes
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                if (previewItem != null) {
+                    // Usa la miniatura (si es imagen) o un approach similar (si es video).
+                    FolderPreview(previewItem)
+                } else {
+                    // No hay items? Placeholder
+                    Text("Sin ítems")
                 }
-                item.mimeType.startsWith("video/") -> {
-                    Box(
-                        modifier = Modifier
-                            .size(100.dp)
-                            .background(Color.Gray)
-                            .clickable {
+
+                // Nombre del mes (2024-12 => "Diciembre 2024"?)
+                // Podrías parsear y formatear con SimpleDateFormat u otra librería
+                Text(
+                    text = monthKey ?: "Desconocido",
+                    color = Color.White,
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                        .background(Color(0x88000000))
+                        .padding(4.dp)
+                )
+            }
+        }
+    }
+}
+@Composable
+fun FolderPreview(item: MultimediaItem) {
+    val context = LocalContext.current
+
+    // Si es imagen
+    if (item.mimeType.startsWith("image/")) {
+        val dataSource = item.localPath?.let { "file://$it" } ?: item.url
+        val painter = rememberAsyncImagePainter(
+            ImageRequest.Builder(context)
+                .data(dataSource)
+                .placeholder(R.drawable.placeholder)
+                .error(R.drawable.error_placeholder)
+                .crossfade(true)
+                .diskCachePolicy(CachePolicy.ENABLED)
+                .memoryCachePolicy(CachePolicy.ENABLED)
+                .build()
+        )
+        Image(
+            painter = painter,
+            contentDescription = item.name,
+            modifier = Modifier.fillMaxSize()
+        )
+    } else {
+        // Video => podrías mostrar un ícono o un frame en miniatura
+        Image(
+            painter = rememberAsyncImagePainter(R.drawable.placeholder),
+            contentDescription = "Video preview",
+            modifier = Modifier.fillMaxSize()
+        )
+    }
+}
+
+@Composable
+fun GalleryScreen(
+    multimediaItems: List<MultimediaItem>,
+    viewModel: MultimediaViewModel,
+    onBack: () -> Unit = {}
+) {
+    var showDialog by remember { mutableStateOf(false) }
+    var currentItem by remember { mutableStateOf<MultimediaItem?>(null) }
+
+    // En vez de Box con un Text flotante, usamos Column
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        // Botón “Atrás”
+        Text(
+            text = "< Atrás",
+            modifier = Modifier
+                .clickable { onBack() }
+                .padding(8.dp),
+            color = Color.White
+        )
+
+        // Aquí viene la grilla
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            contentPadding = PaddingValues(4.dp),
+            modifier = Modifier.padding(4.dp)
+        ) {
+            items(multimediaItems) { item ->
+                when {
+                    item.mimeType.startsWith("image/") -> {
+                        ImageThumbnail(
+                            item = item,
+                            onClick = {
+                                // Descarga offline
+                                viewModel.downloadImageOffline(item.url, item.name)
+                                currentItem = item
+                                showDialog = true
+                            }
+                        )
+                    }
+                    item.mimeType.startsWith("video/") -> {
+                        VideoThumbnail(
+                            item = item,
+                            onClick = {
+                                // Descarga offline
+                                viewModel.downloadVideoThumbnailOffline(item.url, item.name)
                                 currentItem = item
                                 showDialog = true
                             },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        AndroidView(
-                            factory = { context ->
-                                ImageView(context).apply {
-                                    Glide.with(context)
-                                        .asBitmap()
-                                        .load(item.url)
-                                        .apply(RequestOptions().frame(1000000)) // Captura el cuadro en el tiempo 1s
-                                        .into(this)
-                                }
-                            },
-                            modifier = Modifier.fillMaxSize()
+                            viewModel = viewModel
                         )
                     }
                 }
@@ -206,64 +317,143 @@ fun GalleryScreen(multimediaItems: List<MultimediaItem>) {
         }
     }
 
+    // Diálogo fullscreen
     if (showDialog) {
-        currentItem?.let {
-            Dialog(
-                onDismissRequest = { showDialog = false },
-                content = {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        when {
-                            it.mimeType.startsWith("image/") -> {
-                                ImagenFullScreenMultimedia(it.url) {
-                                    showDialog = false
-                                }
-                            }
-                            it.mimeType.startsWith("video/") -> {
-                                VideoFullScreen(it.url) {
-                                    showDialog = false
-                                }
-                            }
-                        }
+        currentItem?.let { media ->
+            Dialog(onDismissRequest = { showDialog = false }) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black)
+                        .clickable { showDialog = false },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (media.mimeType.startsWith("image/")) {
+                        ImagenFullScreenMultimedia(media.localPath ?: media.url)
+                    } else if (media.mimeType.startsWith("video/")) {
+                        VideoFullScreen(media.url)
                     }
                 }
+            }
+        }
+    }
+}
+
+/* ---------- IMÁGENES ---------- */
+@Composable
+fun ImageThumbnail(
+    item: MultimediaItem,
+    onClick: () -> Unit
+) {
+    // Si tenemos localPath, usamos file://..., si no, la URL remota
+    val dataSource = item.localPath?.let { "file://$it" } ?: item.url
+
+    val painter = rememberAsyncImagePainter(
+        ImageRequest.Builder(LocalContext.current)
+            .data(dataSource)
+            .placeholder(R.drawable.placeholder)
+            .error(R.drawable.error_placeholder)
+            .crossfade(true)
+            .diskCachePolicy(CachePolicy.ENABLED)
+            .memoryCachePolicy(CachePolicy.ENABLED)
+            .build()
+    )
+
+    val state = painter.state
+
+    Box(
+        modifier = Modifier
+            .size(100.dp)
+            .clickable { onClick() }
+            .padding(4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Image(
+            painter = painter,
+            contentDescription = item.name,
+            modifier = Modifier.fillMaxSize()
+        )
+
+        if (state is AsyncImagePainter.State.Loading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(24.dp),
+                color = Color.White
             )
         }
     }
 }
 
+/* ---------- VIDEOS ---------- */
 @Composable
-fun ImagenFullScreenMultimedia(imageUrl: String, onClose: () -> Unit) {
+fun VideoThumbnail(
+    item: MultimediaItem,
+    onClick: () -> Unit,
+    viewModel: MultimediaViewModel,
+    frameMicros: Long = 1_000_000,
+    modifier: Modifier = Modifier
+) {
+    val pathOrUrl = item.localPath?.let { "file://$it" } ?: item.url
+
+    // produceState: extraemos la miniatura en 2do plano
+    val bitmapState = produceState<Bitmap?>(initialValue = null, key1 = pathOrUrl) {
+        // Podrías usar el thumbnail offline si lo tienes. Si no, intente remotamente.
+        // Si falla, placeholder.
+        value = viewModel.getVideoFrameCached(pathOrUrl, frameMicros)
+    }
+
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(color = Color.Black)
-            .clickable { onClose() },
+        modifier = modifier
+            .size(100.dp)
+            .clickable { onClick() }
+            .padding(4.dp),
         contentAlignment = Alignment.Center
     ) {
-        var scale by remember { mutableStateOf(1f) }
-        var offset by remember { mutableStateOf(Offset.Zero) }
+        val bmp = bitmapState.value
+        if (bmp != null) {
+            Image(
+                bitmap = bmp.asImageBitmap(),
+                contentDescription = "Video thumbnail",
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            // placeholder
+            Image(
+                painter = rememberAsyncImagePainter(R.drawable.placeholder),
+                contentDescription = "placeholder video",
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+    }
+}
 
-        val painter = rememberImagePainter(
-            data = imageUrl,
-            builder = {
-                placeholder(R.drawable.placeholder)
-                error(R.drawable.error_placeholder)
-            }
-        )
+/* ---------- Imagen fullscreen con zoom ---------- */
+@Composable
+fun ImagenFullScreenMultimedia(dataSource: String) {
+    var scale by remember { mutableStateOf(1f) }
+    var offset by remember { mutableStateOf(Offset.Zero) }
 
+    val painter = rememberAsyncImagePainter(
+        ImageRequest.Builder(LocalContext.current)
+            .data(dataSource)
+            .placeholder(R.drawable.placeholder)
+            .error(R.drawable.error_placeholder)
+            .diskCachePolicy(CachePolicy.ENABLED)
+            .memoryCachePolicy(CachePolicy.ENABLED)
+            .build()
+    )
+
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
         Image(
             painter = painter,
             contentDescription = "Imagen ampliada",
             modifier = Modifier
                 .fillMaxSize()
                 .graphicsLayer(
-                    scaleX = maxOf(1f, scale),
-                    scaleY = maxOf(1f, scale),
+                    scaleX = max(scale, 1f),
+                    scaleY = max(scale, 1f),
                     translationX = offset.x,
                     translationY = offset.y
                 )
@@ -277,9 +467,10 @@ fun ImagenFullScreenMultimedia(imageUrl: String, onClose: () -> Unit) {
     }
 }
 
-@OptIn(UnstableApi::class)
+/* ---------- Video fullscreen con ExoPlayer ---------- */
+@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
-fun VideoFullScreen(videoUrl: String, onClose: () -> Unit) {
+fun VideoFullScreen(videoUrl: String) {
     val context = LocalContext.current
     val exoPlayer = remember {
         SimpleExoPlayer.Builder(context).build().apply {
@@ -289,23 +480,22 @@ fun VideoFullScreen(videoUrl: String, onClose: () -> Unit) {
     }
 
     DisposableEffect(exoPlayer) {
-        onDispose {
-            exoPlayer.release()
-        }
+        onDispose { exoPlayer.release() }
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
-            .clickable { onClose() },
+            .background(Color.Black),
         contentAlignment = Alignment.Center
     ) {
         AndroidView(
-            factory = { PlayerView(context).apply {
-                player = exoPlayer
-                useController = true
-            }},
+            factory = {
+                PlayerView(context).apply {
+                    player = exoPlayer
+                    useController = true
+                }
+            },
             modifier = Modifier.fillMaxSize()
         )
     }
