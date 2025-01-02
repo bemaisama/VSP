@@ -54,13 +54,13 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.vidaensupalabra.vsp.MainViewModel
 import com.vidaensupalabra.vsp.R
 import com.vidaensupalabra.vsp.otros.YouTubeVideoView
 import com.vidaensupalabra.vsp.otros.fetchTextFromUrl
 import com.vidaensupalabra.vsp.ui.theme.VspBase
 import com.vidaensupalabra.vsp.ui.theme.VspMarco
 import com.vidaensupalabra.vsp.ui.theme.White
+import com.vidaensupalabra.vsp.viewmodels.MainViewModel
 import kotlinx.coroutines.launch
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element

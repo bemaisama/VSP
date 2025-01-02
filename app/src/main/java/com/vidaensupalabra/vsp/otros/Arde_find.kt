@@ -4,7 +4,7 @@ package com.vidaensupalabra.vsp.otros
 
 import android.content.Context
 import android.util.Log
-import com.vidaensupalabra.vsp.AppDatabase
+import com.vidaensupalabra.vsp.room.AppDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.Calendar

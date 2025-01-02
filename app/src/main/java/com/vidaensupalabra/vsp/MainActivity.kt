@@ -1,11 +1,9 @@
 // MainActivity.kt
 package com.vidaensupalabra.vsp
 
-import com.vidaensupalabra.vsp.ventanas.MultimediaScreen
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.AlertDialog
-import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -43,7 +41,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
@@ -51,13 +48,9 @@ import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.FileProvider
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -65,22 +58,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.room.Dao
-import androidx.room.Database
-import androidx.room.Entity
-import androidx.room.Insert
-import androidx.room.PrimaryKey
-import androidx.room.Query
-import androidx.room.Room
-import androidx.room.RoomDatabase
-import androidx.room.Update
-import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.vidaensupalabra.vsp.notificaciones.scheduleNotifications
 import com.vidaensupalabra.vsp.notificaciones.scheduleWeeklyNotification
 import com.vidaensupalabra.vsp.otros.checkForUpdate
 import com.vidaensupalabra.vsp.otros.getCurrentArdeReference
+import com.vidaensupalabra.vsp.room.AppDatabase
+import com.vidaensupalabra.vsp.room.ArdeEntity
 import com.vidaensupalabra.vsp.ui.theme.VSPTheme
 import com.vidaensupalabra.vsp.ui.theme.VspBase
 import com.vidaensupalabra.vsp.ui.theme.VspMarco
@@ -91,14 +76,13 @@ import com.vidaensupalabra.vsp.ventanas.DonacionScreen
 import com.vidaensupalabra.vsp.ventanas.HomeScreen
 import com.vidaensupalabra.vsp.ventanas.InformationScreen
 import com.vidaensupalabra.vsp.ventanas.Mas
+import com.vidaensupalabra.vsp.ventanas.MultimediaScreen
 import com.vidaensupalabra.vsp.ventanas.MusicaScreen
+import com.vidaensupalabra.vsp.viewmodels.ArdeViewModel
+import com.vidaensupalabra.vsp.viewmodels.MainViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.BufferedReader
 import java.io.File
-import java.io.InputStreamReader
 
 class SecureWebViewActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -148,189 +132,6 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     }
 }
 
-// ------------------ Room -------------------- //
-@Entity(tableName = "arde_data")
-data class ArdeEntity(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    val year: Int,
-    val month: Int,
-    val day: Int,
-    val reference: String,
-    val devocional: String
-)
-
-@Dao
-interface ArdeDao {
-    @Query("SELECT * FROM arde_data")
-    fun getAll(): List<ArdeEntity>
-
-    @Insert
-    fun insertAll(vararg ardes: ArdeEntity)
-
-    @Query("SELECT COUNT(*) FROM arde_data")
-    fun count(): Int
-
-    @Query("SELECT * FROM arde_data WHERE year = :year AND month = :month AND day = :day")
-    suspend fun findByDate(year: Int, month: Int, day: Int): List<ArdeEntity>
-
-    @Update
-    suspend fun updateArde(arde: ArdeEntity)
-}
-
-@Database(entities = [ArdeEntity::class], version = 2)
-abstract class AppDatabase : RoomDatabase() {
-    abstract fun ardeDao(): ArdeDao
-
-    companion object {
-        @Volatile
-        private var INSTANCE: AppDatabase? = null
-
-        fun getInstance(context: Context): AppDatabase {
-            return INSTANCE ?: synchronized(this) {
-                val instance = Room.databaseBuilder(
-                    context.applicationContext,
-                    AppDatabase::class.java,
-                    "arde_database"
-                )
-                    .fallbackToDestructiveMigration()
-                    .build()
-                INSTANCE = instance
-                instance
-            }
-        }
-    }
-}
-
-// ------------------ ViewModels -------------------- //
-class ArdeViewModel(application: Application) : AndroidViewModel(application) {
-    private val db: AppDatabase = AppDatabase.getInstance(application.applicationContext)
-
-    val currentArde: MutableLiveData<ArdeEntity?> = MutableLiveData(null)
-    val dataLoaded: MutableLiveData<Boolean> = MutableLiveData(false)
-    val navigationEvent = MutableSharedFlow<String>()
-
-    init {
-        checkAndLoadData()
-    }
-
-    private fun checkAndLoadData() {
-        viewModelScope.launch(Dispatchers.IO) {
-            val count = db.ardeDao().count()
-            if (count == 0) {
-                val ardeList = loadArdeDataFromCsv(getApplication<Application>().applicationContext)
-                if (ardeList.isNotEmpty()) {
-                    db.ardeDao().insertAll(*ardeList.toTypedArray())
-                    Log.d("ArdeViewModel", "Data loaded from CSV: ${ardeList.size} records")
-                } else {
-                    Log.d("ArdeViewModel", "No data found in CSV or error reading CSV")
-                }
-            } else {
-                Log.d("ArdeViewModel", "Database already contains data. Not loading from CSV.")
-            }
-            dataLoaded.postValue(true)
-        }
-    }
-
-    fun loadArdeDataForSelectedDate(year: Int, month: Int, day: Int) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val ardeData = db.ardeDao().findByDate(year, month, day).firstOrNull()
-            currentArde.postValue(ardeData)
-            if (ardeData != null) {
-                navigationEvent.emit("arde_detail/${ardeData.year}/${ardeData.month}/${ardeData.day}")
-            }
-        }
-    }
-
-    fun updateArde(arde: ArdeEntity) {
-        viewModelScope.launch(Dispatchers.IO) {
-            db.ardeDao().updateArde(arde)
-        }
-    }
-
-    private suspend fun loadArdeDataFromCsv(context: Context): List<ArdeEntity> =
-        withContext(Dispatchers.IO) {
-            val ardeList = mutableListOf<ArdeEntity>()
-            context.assets.open("Datos_Arde.csv").use { inputStream ->
-                BufferedReader(InputStreamReader(inputStream)).use { reader ->
-                    var line: String?
-                    while (reader.readLine().also { line = it } != null) {
-                        val tokens = line!!.split(",")
-                        if (tokens.size >= 4) {
-                            val year = tokens[0].toInt()
-                            val month = tokens[1].toInt()
-                            val day = tokens[2].toInt()
-                            val reference = tokens[3]
-                            val devocional = ""
-                            ardeList.add(
-                                ArdeEntity(
-                                    year = year,
-                                    month = month,
-                                    day = day,
-                                    reference = reference,
-                                    devocional = devocional
-                                )
-                            )
-                        }
-                    }
-                }
-            }
-            return@withContext ardeList
-        }
-}
-
-class MainViewModel(application: Application) : AndroidViewModel(application) {
-    companion object {
-        private const val TAG = "MainViewModel"
-    }
-
-    private val db = FirebaseFirestore.getInstance()
-    var anuncios = mutableStateListOf<ImportantAnnouncement>()
-
-    init {
-        leerAnuncios()
-        cargarCanciones()
-    }
-
-    private fun leerAnuncios() {
-        val db = FirebaseFirestore.getInstance()
-        db.collection("anuncios").addSnapshotListener { snapshots, e ->
-            if (e != null) {
-                Log.w(TAG, "Listen failed.", e)
-                return@addSnapshotListener
-            }
-            Log.d(TAG, "Fetched ${snapshots?.size()} announcements")
-
-            if (snapshots != null && !snapshots.isEmpty) {
-                anuncios.clear()
-                for (document in snapshots.documents) {
-                    val anuncio = document.toObject(ImportantAnnouncement::class.java)
-                    if (anuncio != null) {
-                        anuncios.add(anuncio)
-                        Log.d(TAG, "Announcement added: ${anuncio.youtubevideo}")
-                    }
-                }
-            }
-        }
-    }
-
-    private val _canciones = MutableLiveData<List<Cancion>>()
-    val canciones: LiveData<List<Cancion>> = _canciones
-
-    private fun cargarCanciones() {
-        db.collection("canciones").addSnapshotListener { value, error ->
-            if (error != null) {
-                Log.w(TAG, "Error al escuchar cambios en Firestore", error)
-                return@addSnapshotListener
-            }
-            val cancionesList = arrayListOf<Cancion>()
-            for (doc in value!!) {
-                val cancion = doc.toObject(Cancion::class.java)
-                cancionesList.add(cancion)
-            }
-            _canciones.value = cancionesList
-        }
-    }
-}
 
 // ------------------ MainActivity -------------------- //
 
@@ -665,7 +466,7 @@ fun NavigationGraph(navController: NavHostController, mainActivity: MainActivity
             val ardeEntity = viewModel.currentArde.observeAsState().value
             DevocionalScreen(
                 arde = ardeEntity,
-                onSave = { updatedArde ->
+                onSave = { updatedArde: ArdeEntity ->
                     viewModel.updateArde(updatedArde)
                 },
                 onClose = {

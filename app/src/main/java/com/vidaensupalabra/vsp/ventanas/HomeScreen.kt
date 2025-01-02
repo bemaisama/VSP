@@ -62,7 +62,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.vidaensupalabra.vsp.MainViewModel
 import com.vidaensupalabra.vsp.R
 import com.vidaensupalabra.vsp.R.drawable
 import com.vidaensupalabra.vsp.otros.YouTubeVideoView
@@ -71,6 +70,7 @@ import com.vidaensupalabra.vsp.ui.theme.VspMarco
 import com.vidaensupalabra.vsp.ui.theme.VspMarcoTransparente
 import com.vidaensupalabra.vsp.ui.theme.VspMarcoTransparente50
 import com.vidaensupalabra.vsp.ui.theme.White
+import com.vidaensupalabra.vsp.viewmodels.MainViewModel
 
 @Composable
 fun HomeScreen() {

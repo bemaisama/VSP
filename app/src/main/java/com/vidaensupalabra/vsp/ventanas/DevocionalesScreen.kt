@@ -41,7 +41,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.vidaensupalabra.vsp.ArdeEntity
+import com.vidaensupalabra.vsp.room.ArdeEntity
 import com.vidaensupalabra.vsp.ui.theme.VspBase
 import com.vidaensupalabra.vsp.ui.theme.White
 

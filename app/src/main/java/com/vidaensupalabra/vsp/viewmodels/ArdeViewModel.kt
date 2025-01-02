@@ -8,8 +8,8 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
-import com.vidaensupalabra.vsp.AppDatabase
-import com.vidaensupalabra.vsp.ArdeEntity
+import com.vidaensupalabra.vsp.room.AppDatabase
+import com.vidaensupalabra.vsp.room.ArdeEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
@@ -35,18 +35,17 @@ class ArdeViewModel(application: Application) : AndroidViewModel(application) {
                 val ardeList = loadArdeDataFromCsv(getApplication<Application>().applicationContext)
                 if (ardeList.isNotEmpty()) {
                     db.ardeDao().insertAll(*ardeList.toTypedArray())
-                    Log.d("ArdeViewModel", "Data loaded successfully from CSV: ${ardeList.size} records")
+                    Log.d("ArdeViewModel", "Data loaded from CSV: ${ardeList.size} records")
                 } else {
                     Log.d("ArdeViewModel", "No data found in CSV or error reading CSV")
                 }
             } else {
-                Log.d("ArdeViewModel", "Database already contains data. No need to load from CSV.")
+                Log.d("ArdeViewModel", "Database already contains data. Not loading from CSV.")
             }
             dataLoaded.postValue(true)
         }
     }
 
-    // Función para cargar datos de ARDE basados en la fecha seleccionada.
     fun loadArdeDataForSelectedDate(year: Int, month: Int, day: Int) {
         viewModelScope.launch(Dispatchers.IO) {
             val ardeData = db.ardeDao().findByDate(year, month, day).firstOrNull()
@@ -71,13 +70,21 @@ class ArdeViewModel(application: Application) : AndroidViewModel(application) {
                     var line: String?
                     while (reader.readLine().also { line = it } != null) {
                         val tokens = line!!.split(",")
-                        if (tokens.size >= 4) { // Asegura que hay al menos 4 tokens por línea
+                        if (tokens.size >= 4) {
                             val year = tokens[0].toInt()
                             val month = tokens[1].toInt()
                             val day = tokens[2].toInt()
                             val reference = tokens[3]
-                            val devocional = "" // Inicializa el campo devocional con una cadena vacía
-                            ardeList.add(ArdeEntity(year = year, month = month, day = day, reference = reference, devocional = devocional))
+                            val devocional = ""
+                            ardeList.add(
+                                ArdeEntity(
+                                    year = year,
+                                    month = month,
+                                    day = day,
+                                    reference = reference,
+                                    devocional = devocional
+                                )
+                            )
                         }
                     }
                 }
