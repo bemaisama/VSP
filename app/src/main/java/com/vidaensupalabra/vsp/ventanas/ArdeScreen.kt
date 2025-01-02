@@ -51,7 +51,10 @@ import com.vidaensupalabra.vsp.ui.theme.White
 import java.util.Calendar
 
 @Composable
-fun ARDEScreen(viewModel: ArdeViewModel = viewModel(), navController: NavHostController) {
+fun ARDEScreen(
+    viewModel: ArdeViewModel = viewModel(),
+    navController: NavHostController
+) {
     val context = LocalContext.current
 
     Scaffold { innerPadding ->

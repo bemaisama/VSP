@@ -117,8 +117,7 @@ dependencies {
 
     // Recursos para testing (solo si se necesitan)
     debugImplementation("androidx.compose.ui:ui-tooling:1.7.6")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0")
     implementation("com.github.bumptech.glide:glide:4.15.1")
     kapt("com.github.bumptech.glide:compiler:4.15.1")
-
+    implementation ("com.google.accompanist:accompanist-swiperefresh:0.31.3-beta")
 }
