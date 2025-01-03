@@ -1,4 +1,4 @@
-// ArdeViewModel
+// ArdeViewModel.kt
 
 package com.vidaensupalabra.vsp.viewmodels
 

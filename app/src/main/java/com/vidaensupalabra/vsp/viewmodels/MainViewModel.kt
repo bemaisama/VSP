@@ -1,4 +1,4 @@
-// MainViewModel
+// MainViewModel.kt
 
 package com.vidaensupalabra.vsp.viewmodels
 
@@ -73,3 +73,4 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 }
+

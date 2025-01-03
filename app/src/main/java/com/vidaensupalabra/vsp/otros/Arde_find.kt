@@ -16,7 +16,11 @@ suspend fun getCurrentArdeReference(context: Context): String {
         Log.d("DATABASE_INIT", "Database initialized successfully.")
 
         val calendar = Calendar.getInstance()
-        val year = 1 // Año fijo en la base de datos
+
+        val currentYear = calendar.get(Calendar.YEAR)
+        // Año base para el inicio del ciclo (define aquí el inicio del ciclo)
+        val startYear = 2022
+        val year = ((currentYear - startYear) % 3) + 1
         val month = calendar.get(Calendar.MONTH) + 1
         val day = calendar.get(Calendar.DAY_OF_MONTH)
 

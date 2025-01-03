@@ -1,4 +1,5 @@
-//MultimediaScreen.kt
+// MultimediaScreen.kt
+
 package com.vidaensupalabra.vsp.ventanas
 
 import android.app.Application
@@ -500,3 +501,4 @@ fun VideoFullScreen(videoUrl: String) {
         )
     }
 }
+

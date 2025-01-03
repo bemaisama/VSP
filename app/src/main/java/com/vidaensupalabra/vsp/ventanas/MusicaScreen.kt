@@ -1,3 +1,5 @@
+// MusicaScreen.kt
+
 package com.vidaensupalabra.vsp.ventanas
 
 import androidx.compose.foundation.Image
@@ -296,3 +298,4 @@ fun <K, V> SnapshotStateMapSaver(): Saver<SnapshotStateMap<K, V>, Any> {
         }
     )
 }
+
